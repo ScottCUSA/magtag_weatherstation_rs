@@ -1,0 +1,16 @@
+[target.xtensa-esp32s2-none-elf]
+runner = "espflash flash --monitor --chip esp32s2"
+# runner = "probe-rs run --chip esp32s2" # for running the tests with probe-rs
+
+[env]
+ESP_LOG="info"
+
+[build]
+rustflags = [
+  "-C", "link-arg=-nostartfiles",
+]
+
+target = "xtensa-esp32s2-none-elf"
+
+[unstable]
+build-std = ["alloc", "core"]
