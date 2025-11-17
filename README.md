@@ -54,13 +54,6 @@ cargo run --release
 Firmware emits logs via the `log` facade over serial. To follow runtime output, open a serial terminal at 115200 baud (or the configured baud rate).
 **Important Note: This project does not setup the USB serial device on the esp32s2. To monitor the serial output, you will need to connect a USB-serial device to the UART RX/TX pinouts on the back of the MagTag.**
 
-
-## Device behaviour
-
-- On boot the firmware initializes peripherals (SPI, Wifi), brings up Wi‑Fi, performs a GET request for the current and future weather, and renders the results to the e‑paper display.
-- On success the device enters deep sleep for approximately 24 hours. See `SLEEP_ON_SUCCESS_SECS` in `src/bin/main.rs` to change the interval.
-- On failure the firmware will sleep for a shorter retry interval before trying again. 
-
 ## Project layout
 
 - `src/bin/main.rs` — application entry point: hardware init, network stack, and high-level flow
