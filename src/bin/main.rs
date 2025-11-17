@@ -26,10 +26,10 @@ use magtag_weatherstation::{
     weather::fetch_and_display_weather,
 };
 
+const HEAP_KB: usize = 72;
+
 const SLEEP_ON_ERROR_SECS: u64 = 60 * 5;
 const SLEEP_ON_SUCCESS_SECS: u64 = 60 * 60 * 24;
-
-const HEAP_KB: usize = 72;
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -46,7 +46,7 @@ macro_rules! mk_static {
 
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
-    // Initialize logger for esp-println
+    // Initialize logger
     init_logger(log::LevelFilter::Info);
     esp_alloc::heap_allocator!(size: HEAP_KB * 1024);
 
@@ -56,7 +56,7 @@ async fn main(spawner: Spawner) -> ! {
     // Initialize RTC for deep sleep
     let rtc = Rtc::new(peripherals.LPWR);
 
-    // Iniitialize SPI device and control pins
+    // Iniitialize SPI device and control pins for display
     let sclk = peripherals.GPIO36;
     let mosi = peripherals.GPIO35;
     let miso = peripherals.GPIO37;
@@ -116,7 +116,7 @@ async fn main(spawner: Spawner) -> ! {
         };
     let wifi_interface = interfaces.sta;
 
-    // init network stack
+    // Initialize network stack
     let config = embassy_net::Config::dhcpv4(Default::default());
     let rng = Rng::new();
     let seed = (rng.random() as u64) << 32 | (rng.random() as u64);
@@ -127,11 +127,11 @@ async fn main(spawner: Spawner) -> ! {
         seed,
     );
 
-    // spawn network tasks
+    // Spawn network tasks
     spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(runner)).ok();
 
-    // wait for link up (with timeout)
+    // Wait for link up (with timeout)
     if with_deadline(Instant::now() + Duration::from_secs(10), async {
         loop {
             if stack.is_link_up() {
@@ -148,7 +148,7 @@ async fn main(spawner: Spawner) -> ! {
         enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
     }
 
-    // wait for IP address (with timeout)
+    // Wait for IP address (with timeout)
     if with_deadline(Instant::now() + Duration::from_secs(20), async {
         loop {
             if let Some(config) = stack.config_v4() {
@@ -172,6 +172,7 @@ async fn main(spawner: Spawner) -> ! {
         enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
     }
 
+    // Fetch and display weather data
     let weather_result = fetch_and_display_weather(stack, spi_device, busy, dc, rst).await;
 
     // Handle result and enter deep sleep
