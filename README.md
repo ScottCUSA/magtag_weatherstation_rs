@@ -1,4 +1,4 @@
-# magtag_esp_hal_weather
+# magtag_weatherstation
 
 Compact Rust firmware to fetch weather data and display it on an Adafruit MagTag e-paper device using the ESP32-S2 family and `esp-hal` ecosystem.
 
@@ -51,7 +51,7 @@ The firmware uses `log` to output informational messages on serial. Open a seria
 - On startup the firmware initializes peripherals (SPI, display), configures Wi-Fi and the network stack, then fetches weather data and draws it to the e-paper display.
 - On success the device enters deep sleep for ~24 hours (see `SLEEP_ON_SUCCESS_SECS` in `src/bin/main.rs`). On failure it sleeps for a shorter retry interval.
 
-# Project layout
+### Project layout
 
 - `src/bin/main.rs` - application entrypoint: hardware init, network stack, spawn tasks and drive high level flow
 - `src/lib.rs` - no_std crate module exports
@@ -60,7 +60,7 @@ The firmware uses `log` to output informational messages on serial. Open a seria
 - `src/sleep.rs` - deep sleep helper
 - `src/weather/` - weather model and fetch logic
 
-Contributing
+### Contributing
 
 If you want to contribute, please:
 
@@ -68,10 +68,7 @@ If you want to contribute, please:
 2. Keep changes small and focused.
 3. If adding features that change behavior or build targets, include build/test instructions.
 
-License
+### License
 
-This repository does not include an explicit LICENSE file. If you plan to reuse or redistribute, add a license or ask the author for clarification.
+MIT
 
-Contact / Notes
-
-This README was generated/added to the project to help onboard developers. For device-specific wiring and pin mappings, check `src/bin/main.rs` where the SPI pins and control pins are selected.
