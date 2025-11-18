@@ -67,11 +67,7 @@ Firmware emits logs via the `log` facade over serial. To follow runtime output, 
 
 ## Contributing
 
-Contributions are welcome. A simple workflow:
-
-1. Fork the repository and open a pull request.
-2. Keep changes small and focused. Add tests where appropriate.
-3. If you change build targets or hardware assumptions, include updated build/flash instructions.
+Contributions are welcome, but please do not change build targets or hardware assumptions.
 
 ## License
 
