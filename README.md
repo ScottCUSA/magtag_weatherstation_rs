@@ -20,6 +20,8 @@ This project was heavily inspired by Adafruit's MagTag weather example:
 	https://docs.espressif.com/projects/rust/book/getting-started/toolchain.html
 - A flasher tool for the xtensa-esp32s2 target: 
 	- `espflash`
+    
+- To build the project and connect to wifi, you need to set the environment variables SSID, and PASSWORD. The project uses the env! macro to set these static values at compile time in the src/network.rs file.
 
 ## Notable dependencies
 
@@ -52,7 +54,7 @@ cargo run --release
 ## Logs / Serial
 
 Firmware emits logs via the `log` facade over serial. To follow runtime output, open a serial terminal at 115200 baud (or the configured baud rate).
-**Important Note: This project does not setup the USB serial device on the esp32s2. To monitor the serial output, you will need to connect a USB-serial device to the UART RX/TX pinouts on the back of the MagTag.**
+**Important Note: This project does not setup a USB serial device on the esp32s2 to write serial output over USB. To monitor the serial output, you will need to connect a USB-serial device to the UART RX/TX pinouts on the back of the MagTag.**
 
 ## Project layout
 
