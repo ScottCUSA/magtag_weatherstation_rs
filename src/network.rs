@@ -5,9 +5,7 @@ use esp_radio::wifi::{
 };
 use log::{error, info};
 
-// Configuration constants
-const SSID: &str = env!("SSID");
-const PASSWORD: &str = env!("PASSWORD");
+use crate::config::{WIFI_PASSWORD, WIFI_SSID};
 
 #[embassy_executor::task]
 pub async fn connection(mut controller: WifiController<'static>) {
@@ -20,11 +18,11 @@ pub async fn connection(mut controller: WifiController<'static>) {
             Timer::after(Duration::from_secs(5)).await;
         }
         if !matches!(controller.is_started(), Ok(true)) {
-            log::info!("Attempting to connect to WiFi network SSID: {}", SSID);
+            log::info!("Attempting to connect to WiFi network SSID: {}", WIFI_SSID);
             let client_config = ModeConfig::Client(
                 ClientConfig::default()
-                    .with_ssid(SSID.into())
-                    .with_password(PASSWORD.into()),
+                    .with_ssid(WIFI_SSID.into())
+                    .with_password(WIFI_PASSWORD.into()),
             );
             if let Err(e) = controller.set_config(&client_config) {
                 error!("Failed to set WiFi config: {:?}", e);

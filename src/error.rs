@@ -12,6 +12,7 @@ pub enum AppError {
     ConnectionFailed,
     HttpRequestFailed,
     SocketReadError,
+    RequestTimeout,
     JsonParseFailed,
 
     // Fallback for unknown errors
@@ -27,6 +28,7 @@ impl Display for AppError {
             AppError::ConnectionFailed => write!(msg, "network connection failed"),
             AppError::HttpRequestFailed => write!(msg, "HTTP request failed"),
             AppError::SocketReadError => write!(msg, "socket read error"),
+            AppError::RequestTimeout => write!(msg, "API timeout error"),
             AppError::JsonParseFailed => write!(msg, "JSON parse failed"),
             AppError::Other => write!(msg, "an unknown error occurred"),
         }?;

@@ -9,10 +9,17 @@ use once_cell::sync::Lazy;
 use heapless::{LinearMap, String, format};
 
 use self::model::ApiResponse;
-use crate::display::{show_app_error, show_on_display};
-use crate::error::AppError;
+use crate::{
+    config::OPENMETEO_LATITUDE,
+    display::{show_app_error, show_on_display},
+};
+use crate::{
+    config::{OPENMETEO_LONGITUDE, OPENMETEO_TIMEZONE},
+    error::AppError,
+};
 
 pub mod api;
+pub mod http;
 pub mod model;
 
 // lazy static map for weather codes to descriptions
@@ -53,7 +60,14 @@ pub async fn fetch_and_display_weather(
     dc: Output<'static>,
     rst: Output<'static>,
 ) -> Result<(), AppError> {
-    let buf = match api::fetch_weather_data::<1536>(stack).await {
+    let buf = match api::fetch_weather_data(
+        stack,
+        OPENMETEO_LATITUDE,
+        OPENMETEO_LONGITUDE,
+        OPENMETEO_TIMEZONE,
+    )
+    .await
+    {
         Ok(data) => data,
         Err(e) => {
             log::error!("Fetching weather data failed: {:?}", e);

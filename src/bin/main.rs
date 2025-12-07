@@ -15,7 +15,7 @@ use esp_hal::{
     time::Rate,
     timer::timg::TimerGroup,
 };
-use esp_println::logger::init_logger;
+use esp_println::logger::init_logger_from_env;
 use esp_radio::Controller;
 use heapless::format;
 use log::info;
@@ -47,11 +47,15 @@ macro_rules! mk_static {
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
     // Initialize logger
-    init_logger(log::LevelFilter::Info);
-    esp_alloc::heap_allocator!(size: HEAP_KB * 1024);
+    init_logger_from_env();
 
     info!("Initialize peripherals");
     let peripherals = esp_hal::init(esp_hal::Config::default());
+
+    esp_alloc::heap_allocator!(size: HEAP_KB * 1024);
+    // esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
+
+    // esp_alloc::psram_allocator!(peripherals.PSRAM, hal::psram);
 
     // Initialize RTC for deep sleep
     let rtc = Rtc::new(peripherals.LPWR);
