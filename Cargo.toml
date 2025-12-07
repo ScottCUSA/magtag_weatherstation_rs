@@ -62,6 +62,7 @@ embassy-executor = "0.9.1"
 embassy-time = "0.5.0"
 embassy-net = { version = "0.7.1", features = ["dhcpv4", "tcp", "udp", "dns"] }
 embedded-io-async = "0.6.1"
+percent-encoding = { version = "2.3.2", default-features = false }
 
 # embassy-sync = { version = "0.7.2", features = ["log"] }
 
