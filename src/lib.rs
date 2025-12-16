@@ -1,6 +1,6 @@
 #![no_std]
 
-#[macro_use(vec)]
+#[macro_use]
 extern crate alloc;
 
 pub mod config;

@@ -1,5 +1,4 @@
 use core::fmt::Write as _;
-use heapless::String;
 
 use crate::{
     error::AppError,
@@ -7,7 +6,7 @@ use crate::{
 };
 
 extern crate alloc;
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 
 const DAILY_FIELDS: &str = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant";
 const HEADERS_STR: &str = "Accept: application/json";
@@ -24,12 +23,12 @@ pub fn build_open_meteo_query(
     latitude: &str,
     longitude: &str,
     timezone: &str,
-) -> Result<String<512>, AppError> {
-    let lat_enc: String<16> = url_encode_component(latitude)?;
-    let long_enc: String<16> = url_encode_component(longitude)?;
-    let tz_enc: String<96> = url_encode_component(timezone)?;
+) -> Result<String, AppError> {
+    let lat_enc: String = url_encode_component(latitude)?;
+    let long_enc: String = url_encode_component(longitude)?;
+    let tz_enc: String = url_encode_component(timezone)?;
 
-    let mut query: String<512> = String::new();
+    let mut query: String = String::new();
     write!(
         query,
         "/v1/forecast?latitude={}&longitude={}&daily={}&timezone={}",

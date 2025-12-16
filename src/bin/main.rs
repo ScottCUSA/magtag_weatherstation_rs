@@ -53,9 +53,7 @@ async fn main(spawner: Spawner) -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
 
     esp_alloc::heap_allocator!(size: HEAP_KB * 1024);
-    // esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
-
-    // esp_alloc::psram_allocator!(peripherals.PSRAM, hal::psram);
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
 
     // Initialize RTC for deep sleep
     let rtc = Rtc::new(peripherals.LPWR);

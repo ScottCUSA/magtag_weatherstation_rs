@@ -1,12 +1,10 @@
 use core::fmt::Write as _;
 use embassy_net::{dns::DnsQueryType, tcp::TcpSocket};
 use embassy_time::{Duration, Instant, with_deadline};
-use heapless::String;
 use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 
 use crate::error::AppError;
-
-extern crate alloc;
+use alloc::string::String;
 use alloc::vec::Vec;
 
 const RESOLVE_TIMEOUT: Duration = Duration::from_secs(5);
@@ -14,7 +12,6 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(10);
 const QUERY_ENCODE_SET: &AsciiSet = &CONTROLS
-    // common separators / punctuation / reserved characters:
     .add(b' ')
     .add(b'!')
     .add(b'"')
@@ -45,7 +42,7 @@ const QUERY_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}')
     .add(b'~');
 
-pub fn url_encode_component<const N: usize>(component: &str) -> Result<String<N>, AppError> {
+pub fn url_encode_component(component: &str) -> Result<String, AppError> {
     let mut buf = String::new();
     write!(buf, "{}", utf8_percent_encode(component, QUERY_ENCODE_SET))
         .map_err(|_| AppError::Other)?;
@@ -81,14 +78,14 @@ impl Method {
 }
 
 /// Returns a heapless string containing the full HTTP/1.0 request (headers + body).
-pub fn build_http_request<const N: usize>(
+pub fn build_http_request(
     method: Method,
     target: &str,
     host: &str,
     headers: Option<&str>,
     body: Option<&str>,
-) -> Result<String<N>, AppError> {
-    let mut req: String<N> = String::new();
+) -> Result<String, AppError> {
+    let mut req: String = String::new();
     write!(
         req,
         "{} {} HTTP/1.0\r\nHost: {}\r\n",
@@ -123,13 +120,10 @@ pub async fn http_get(
     target: &str,
     headers: Option<&str>,
 ) -> Result<Vec<u8>, AppError> {
-    let mut rx_buffer = [0u8; 1536];
-    let mut tx_buffer = [0u8; 512];
-    // // Use heap-allocated buffers to avoid large stack frames on the embedded target.
-    // let mut rx_buffer: Vec<u8> = vec![0; 1536];
-    // let mut tx_buffer: Vec<u8> = vec![0; 512];
+    let mut rx_buffer: Vec<u8> = vec![0; 1536];
+    let mut tx_buffer: Vec<u8> = vec![0; 512];
 
-    let request: String<512> = build_http_request(Method::Get, target, host, headers, None)?;
+    let request = build_http_request(Method::Get, target, host, headers, None)?;
 
     log::debug!("resolving IP for {}...", host);
 

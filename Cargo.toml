@@ -1,8 +1,8 @@
 [package]
-edition      = "2024"
-name         = "magtag_weatherstation"
+edition = "2024"
+name = "magtag_weatherstation"
 rust-version = "1.88"
-version      = "0.1.0"
+version = "0.1.0"
 
 [lib]
 harness = false
@@ -13,7 +13,12 @@ path = "./src/bin/main.rs"
 test = false
 
 [dependencies]
-esp-hal = { version = "1.0.0", features = ["esp32s2", "log-04", "unstable"] }
+esp-hal = { version = "1.0.0", features = [
+  "esp32s2",
+  "log-04",
+  "unstable",
+  "psram",
+] }
 
 esp-rtos = { version = "0.2.0", features = [
   "esp-alloc",
@@ -24,13 +29,13 @@ esp-rtos = { version = "0.2.0", features = [
 ] }
 
 esp-bootloader-esp-idf = { version = "0.4.0", features = ["esp32s2", "log-04"] }
-log                    = "0.4.27"
+log = "0.4.29"
 
-esp-alloc = "0.9.0"
+esp-alloc = { version = "0.9.0", features = ["nightly"] }
 esp-backtrace = { version = "0.18.1", features = [
   "esp32s2",
   "panic-handler",
-  "println"
+  "println",
 ] }
 esp-println = { version = "0.16.1", features = ["esp32s2", "log-04"] }
 esp-radio = { version = "0.17.0", features = [
@@ -43,19 +48,21 @@ esp-radio = { version = "0.17.0", features = [
 ] }
 
 # custom dependencies
-ssd1680 = {git="https://github.com/ScottCUSA/ssd1680.git" , branch="main" }
+ssd1680 = { git = "https://github.com/ScottCUSA/ssd1680.git", branch = "main" }
 heapless = { version = "0.9.2", features = ["serde"] }
 embedded-hal-bus = "0.3.0"
 static_cell = "2.1.1"
 
 # JSON parsing in no_std
-serde = { version = "1.0", features = ["derive"], default-features=false }
+serde = { version = "1.0", features = ["derive"], default-features = false }
 serde-json-core = "0.6"
 
 # Text layout for embedded-graphics (wrapping, alignment, textbox)
 embedded-graphics = "0.8.1"
 embedded-text = "0.7"
-once_cell = { version = "1.21.3", features = ["critical-section"], default-features = false }
+once_cell = { version = "1.21.3", features = [
+  "critical-section",
+], default-features = false }
 
 # Embassy for async tasks
 embassy-executor = "0.9.1"
@@ -80,10 +87,10 @@ percent-encoding = { version = "2.3.2", default-features = false }
 opt-level = "s"
 
 [profile.release]
-codegen-units    = 1     # LLVM can perform better optimizations using a single thread
-debug            = 2
+codegen-units = 1        # LLVM can perform better optimizations using a single thread
+debug = 2
 debug-assertions = false
-incremental      = false
-lto              = 'fat'
-opt-level        = 's'
-overflow-checks  = false
+incremental = false
+lto = 'fat'
+opt-level = 's'
+overflow-checks = false
