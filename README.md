@@ -14,6 +14,11 @@ This project was heavily inspired by Adafruit's MagTag weather example:
 - https://learn.adafruit.com/magtag-weather
 - https://github.com/adafruit/Adafruit_Learning_System_Guides/blob/main/MagTag/MagTag_Weather/openmeteo/code.py
 
+## Features
+
+- **Graphical output** (enabled by default): Displays weather information using bitmap graphics from `resources/weather_bg.bmp`. This can be disabled by building with `--no-default-features`.
+- Text-based fallback: When graphical output is disabled, weather data is rendered as text.
+
 ## Prerequisites
 
 - Rust with the Espressif toolchain for Xtensa (see esp-rs getting started):
@@ -31,14 +36,18 @@ All dependencies are declared in `Cargo.toml`. Highlights:
 - `embassy-net`, `embassy-executor` — async network stack and executor
 - `ssd1680` — SSD1680 e-paper driver for Adafruit MagTag ePaper display (EPD) (git dependency)
 - `embedded-graphics`, `embedded-text` — drawing and text layout
+- `tinybmp` — BMP image parsing for graphical weather display
 
 ## Build
 
 Build the release binary for the target from the repository root:
 
 ```bash
-# build optimized firmware
+# build optimized firmware with graphical output (default)
 cargo build --release
+
+# build with text-only output (no graphics)
+cargo build --release --no-default-features
 ```
 
 
@@ -61,9 +70,11 @@ Firmware emits logs via the `log` facade over serial. To follow runtime output, 
 - `src/bin/main.rs` — application entry point: hardware init, network stack, and high-level flow
 - `src/lib.rs` — crate exports and shared types
 - `src/display.rs` — display initialization and drawing helpers
+- `src/graphics.rs` — graphical display helpers (enabled with `graphical` feature)
 - `src/network.rs` — Wi‑Fi and networking helpers
 - `src/sleep.rs` — deep sleep helper
 - `src/weather/` — weather model, API client and parsing logic
+- `resources/` — bitmap images for graphical display
 
 ## Contributing
 

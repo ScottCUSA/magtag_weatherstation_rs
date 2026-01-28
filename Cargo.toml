@@ -4,6 +4,10 @@ name = "magtag_weatherstation"
 rust-version = "1.88"
 version = "0.1.0"
 
+[features]
+default = ["graphical"]
+graphical = []
+
 [lib]
 harness = false
 
@@ -60,6 +64,7 @@ serde-json-core = "0.6"
 # Text layout for embedded-graphics (wrapping, alignment, textbox)
 embedded-graphics = "0.8.1"
 embedded-text = "0.7"
+tinybmp = "0.7.0"
 once_cell = { version = "1.21.3", features = [
   "critical-section",
 ], default-features = false }

@@ -83,10 +83,19 @@ pub async fn fetch_and_display_weather(
         Ok(parsed) => {
             log::info!("Parsed response: timezone {}", parsed.timezone);
 
-            // create the textual summary
-            let out = String::from(&parsed);
-            let _ = show_on_display(out.as_str(), spi_device, busy, dc, rst);
+            #[cfg(feature = "graphical")]
+            {
+                // Display graphical background
+                use crate::graphics::show_background_image;
+                let _ = show_background_image(spi_device, busy, dc, rst);
+            }
 
+            #[cfg(not(feature = "graphical"))]
+            {
+                // create the textual summary
+                let out = String::from(&parsed);
+                let _ = show_on_display(out.as_str(), spi_device, busy, dc, rst);
+            }
             Ok(())
         }
         Err(e) => {
