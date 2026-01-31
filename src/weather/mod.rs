@@ -86,8 +86,8 @@ pub async fn fetch_and_display_weather(
             #[cfg(feature = "graphical")]
             {
                 // Display graphical background
-                use crate::graphics::show_background_image;
-                let _ = show_background_image(spi_device, busy, dc, rst);
+                use crate::graphics::display_graphical_weather;
+                let _ = display_graphical_weather(parsed, spi_device, busy, dc, rst);
             }
 
             #[cfg(not(feature = "graphical"))]
