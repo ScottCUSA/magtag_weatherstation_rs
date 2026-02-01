@@ -12,6 +12,10 @@ A `no_std` Rust firmware for the 2025 revision of the [Adafruit MagTag](https://
 - **Error Handling**: Displays error messages on the e-paper screen when issues occur
 - **No Standard Library**: Runs entirely in `no_std` environment with custom allocator
 
+## Credits
+
+This project was inspired by Adafruit's [MagTag Weather Example](https://learn.adafruit.com/magtag-weather) [(github)](https://github.com/adafruit/Adafruit_Learning_System_Guides/blob/main/MagTag/MagTag_Weather/openmeteo/code.py) and demonstrates how to build similar functionality in pure Rust with `no_std`. The background and icon asserts are modified from the originals.
+
 ## Hardware Requirements
 
 - [Adafruit MagTag](https://www.adafruit.com/product/4800) - 2025 Edition with SSD1680 (ESP32-S2 based e-paper display) 
@@ -158,10 +162,6 @@ The firmware uses a custom heap allocator with 64KB allocated from reclaimed RAM
 - Check that the display driver is compatible with your MagTag hardware revision
 - Look for error messages on the display itself
 
-## Inspiration
-
-This project was inspired by Adafruit's [MagTag Weather Example](https://learn.adafruit.com/magtag-weather) and demonstrates how to build similar functionality in pure Rust with `no_std`.
-
 ## Architecture
 These diagrams are derived from `src/bin/main.rs` and the tasks in `src/bin/tasks/`.
 
@@ -169,7 +169,7 @@ This diagram shows what `main` spawns during initialization (no runtime messagin
 
 ```mermaid
 sequenceDiagram
-   participant Main as `main` (bin/main.rs)
+   participant Main as main (bin/main.rs)
    participant Executor as Embassy Executor / Spawner
 
    Main->>Executor: spawner.spawn(network::wifi_task(controller))
@@ -178,39 +178,39 @@ sequenceDiagram
    Main->>Executor: spawner.spawn(weather::weather_fetcher_task(stack))
    Main->>Executor: spawner.spawn(display::display_task(..., rtc))
 
-   Note over Main,Executor: After spawning, `main` yields to the executor loop
+   Note over Main,Executor: After spawning, main yields to the executor loop
 ```
 
 
-The diagram below shows the main tasks and channels and signals used to communicate between them.
+The diagram below shows the main tasks as well as the channels and signals used to communicate between them.
 
 ```mermaid
 sequenceDiagram
-   participant NetValidator as `network::net_validator_task`
-   participant Weather as `weather::weather_fetcher_task`
-   participant Display as `display::display_task`
-   participant Sleep as `sleep::enter_deep_sleep_secs`
+   participant NetValidator as network::net_validator_task
+   participant Weather as weather::weather_fetcher_task
+   participant Display as display::display_task
+   participant Sleep as sleep::enter_deep_sleep_secs
    
    NetValidator->>NetValidator: wait for link and IP
    alt IP acquired
-      NetValidator->>Weather: signal `NETWORK_READY`
+      NetValidator->>Weather: signal NETWORK_READY
    else  Link or IP timeout or failure
-      NetValidator->>Display: send `NETWORK_ERROR` (Channel<String>)
+      NetValidator->>Display: send NETWORK_ERROR (Channel<String>)
    end
 
    alt Fetch success
-      Weather->>Display: send `WEATHER_CHANNEL` (Channel<OpenMeteoResponse>)
+      Weather->>Display: send WEATHER_CHANNEL (Channel<OpenMeteoResponse>)
    else Fetch failure (after retries)
-      Weather->>Display: send `NETWORK_ERROR` (Channel<String>)
+      Weather->>Display: send NETWORK_ERROR (Channel<String>)
    end
 
    Display->>Display: select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive())
-   alt Received `NETWORK_ERROR`
-      Display->>Display: `display_error_text(...)`
-      Display->>Sleep: `enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS)`
-   else Received `WEATHER_CHANNEL` data
-      Display->>Display: `display_weather(...)`
-      Display->>Sleep: `enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS)`
+   alt Received NETWORK_ERROR
+      Display->>Display: display_error_text(...)
+      Display->>Sleep: enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS)
+   else Received WEATHER_CHANNEL data
+      Display->>Display: display_weather(...)
+      Display->>Sleep: enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS)
    end
 
 ```
