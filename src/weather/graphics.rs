@@ -89,7 +89,7 @@ where
     draw_future_weather_view(weather_data, buffer)
 }
 
-pub fn draw_text<D>(text: &str, x: i32, y: i32, w: u32, h: u32, buffer: &mut D) -> Result<()>
+pub fn draw_text_at_point<D>(text: &str, top_left: Point, size: Size, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -100,7 +100,7 @@ where
         .paragraph_spacing(2)
         .build();
 
-    let bounds = Rectangle::new(Point::new(x, y), Size::new(w, h));
+    let bounds = Rectangle::new(top_left, size);
     let text_box = TextBox::with_textbox_style(text, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
@@ -108,6 +108,14 @@ where
     })?;
 
     Ok(())
+}
+
+pub fn draw_text<D>(text: &str, x: i32, y: i32, w: u32, h: u32, buffer: &mut D) -> Result<()>
+where
+    D: DrawTarget<Color = Gray2> + OriginDimensions,
+    <D as DrawTarget>::Error: core::fmt::Debug,
+{
+    draw_text_at_point(text, Point::new(x, y), Size::new(w, h), buffer)
 }
 
 /// Draw the background image onto the buffer
@@ -249,7 +257,12 @@ where
         let m = date[5..7].parse().unwrap();
         let d = date[8..10].parse().unwrap();
         let dow = day_of_week_sakamoto(y, m, d);
-        draw_text(dow, 0, 5, 20, 0, buffer)?;
+        draw_text_at_point(
+            dow,
+            start_point + Point::new(0, 5),
+            Size::new(20, 0),
+            buffer,
+        )?;
 
         // weather icon
         let icon = weather_code_to_icon_index(*weather_data.daily.weather_code.get(i).unwrap());
@@ -263,7 +276,12 @@ where
             weather_data.daily.temperature_2m_min[i], temp_unit
         )
         .unwrap();
-        draw_text(&temp_buf, 45, 5, 30, 6, buffer)?;
+        draw_text_at_point(
+            &temp_buf,
+            start_point + Point::new(45, 5),
+            Size::new(30, 6),
+            buffer,
+        )?;
 
         // maximum temperature
         temp_buf.clear();
@@ -273,7 +291,12 @@ where
             weather_data.daily.temperature_2m_max[i], temp_unit
         )
         .unwrap();
-        draw_text(&temp_buf, 75, 5, 30, 0, buffer)?;
+        draw_text_at_point(
+            &temp_buf,
+            start_point + Point::new(75, 5),
+            Size::new(30, 0),
+            buffer,
+        )?;
 
         log::info!("future day {} drawn successfully", i);
     }
