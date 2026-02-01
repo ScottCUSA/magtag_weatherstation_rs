@@ -1,14 +1,8 @@
 use embedded_graphics::{
-    image::{Image, ImageRaw},
-    mono_font::MonoTextStyle,
+    image::ImageRaw,
     pixelcolor::{BinaryColor, Gray2},
     prelude::*,
     primitives::Rectangle,
-};
-use embedded_text::{
-    TextBox,
-    alignment::HorizontalAlignment,
-    style::{HeightMode, TextBoxStyleBuilder},
 };
 
 use core::fmt::Write;
@@ -16,18 +10,11 @@ use heapless::String;
 use once_cell::sync::Lazy;
 
 use crate::{
-    error::{AppError, Result},
-    time::{format_date, get_iso_8601_hh_mm},
+    error::Result,
+    graphics::{draw_binary_color_image, draw_image, draw_text, draw_text_at_point},
+    time::{format_date, iso_8601_hh_mm, short_day_of_week_sakamoto},
     weather::model::OpenMeteoResponse,
 };
-
-// text style: monospace 6x10 as used previously
-pub static CHARACTER_STYLE: Lazy<MonoTextStyle<Gray2>> = Lazy::new(|| {
-    MonoTextStyle::new(
-        &embedded_graphics::mono_font::ascii::FONT_6X10,
-        Gray2::BLACK,
-    )
-});
 
 // load img data at compile time into static storage
 static WEATHER_BG: Lazy<ImageRaw<'static, BinaryColor>> = Lazy::new(|| {
@@ -51,6 +38,9 @@ static WEATHER_ICONS_70PX: Lazy<ImageRaw<'static, Gray2>> = Lazy::new(|| {
     )
 });
 
+/// Draw the full weather station UI into `buffer` using `weather_data`.
+///
+/// Returns `Ok(())` on success or an error `Result` on failure.
 pub fn draw_weather_station_view<D>(weather_data: &OpenMeteoResponse, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
@@ -87,30 +77,6 @@ where
         buffer,
     )?;
     draw_future_weather_view(weather_data, buffer)
-}
-
-pub fn draw_text<D>(text: &str, x: i32, y: i32, w: u32, h: u32, buffer: &mut D) -> Result<()>
-where
-    D: DrawTarget<Color = Gray2> + OriginDimensions,
-    <D as DrawTarget>::Error: core::fmt::Debug,
-{
-    draw_text_at_point(text, Point::new(x, y), Size::new(w, h), buffer)
-}
-
-/// Draw the background image onto the buffer
-fn draw_background_image<D>(buffer: &mut D) -> Result<()>
-where
-    D: DrawTarget<Color = Gray2> + OriginDimensions,
-{
-    // Convert and draw BinaryColor image to Gray2 buffer
-    let image = Image::new(&*WEATHER_BG, Point::zero());
-    image.draw(&mut BinaryToGray2Adapter(buffer)).map_err(|_| {
-        log::error!("Failed to draw image to display buffer");
-        AppError::GraphicsError
-    })?;
-
-    log::info!("Background image drawn successfully");
-    Ok(())
 }
 
 /// Draw the today weather view onto the display buffer
@@ -199,12 +165,12 @@ where
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
     // Draw sunrise
-    let time = get_iso_8601_hh_mm(sunrise).unwrap();
+    let time = iso_8601_hh_mm(sunrise).unwrap();
     draw_text(time, 30, 113, 296, 0, buffer)?;
     log::info!("sunrise drawn successfully");
 
     // Draw sunset
-    let time = get_iso_8601_hh_mm(sunset).unwrap();
+    let time = iso_8601_hh_mm(sunset).unwrap();
     draw_text(time, 115, 113, 296, 0, buffer)?;
     log::info!("sunset drawn successfully");
     Ok(())
@@ -235,7 +201,7 @@ where
         let y = date[0..4].parse().unwrap();
         let m = date[5..7].parse().unwrap();
         let d = date[8..10].parse().unwrap();
-        let dow = day_of_week_sakamoto(y, m, d);
+        let dow = short_day_of_week_sakamoto(y, m, d).unwrap();
         draw_text_at_point(
             dow,
             start_point + Point::new(0, 5),
@@ -282,13 +248,19 @@ where
     Ok(())
 }
 
-/// Draw a weather icon from the sprite sheet onto the display
-///
-/// # Arguments
-/// * `display` - The display buffer to draw onto
-/// * `icon_index` - Index of the icon in the 3x3 sprite sheet (0-8)
-/// * `position` - Where to draw the icon on the display
-/// * `size` - Either 20 or 70 for the icon size
+/// Draw the background image onto the buffer
+fn draw_background_image<D>(buffer: &mut D) -> Result<()>
+where
+    D: DrawTarget<Color = Gray2> + OriginDimensions,
+    <D as DrawTarget>::Error: core::fmt::Debug,
+{
+    // Convert and draw BinaryColor image to Gray2 buffer
+    draw_binary_color_image(&*WEATHER_BG, Point::zero(), buffer)?;
+    log::info!("Background image drawn successfully");
+    Ok(())
+}
+
+/// Draw a weather icon from a sprite sheet onto the display
 fn draw_weather_icon<D>(icon_index: i32, position: Point, size: u32, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2>,
@@ -320,31 +292,7 @@ where
     );
     let sub_image = sprite_sheet.sub_image(&rect);
     log::trace!("{:?}", sub_image);
-    Image::new(&sub_image, position).draw(buffer).map_err(|e| {
-        log::error!("Failed to draw weather icon to display buffer: {:?}", e);
-        AppError::GraphicsError
-    })
-}
-
-fn draw_text_at_point<D>(text: &str, top_left: Point, size: Size, buffer: &mut D) -> Result<()>
-where
-    D: DrawTarget<Color = Gray2> + OriginDimensions,
-    <D as DrawTarget>::Error: core::fmt::Debug,
-{
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
-
-    let bounds = Rectangle::new(top_left, size);
-    let text_box = TextBox::with_textbox_style(text, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        AppError::GraphicsError
-    })?;
-
-    Ok(())
+    draw_image(&sub_image, position, buffer)
 }
 
 /// Map weather codes to icon indices in the sprite sheet (3x3 grid, row-major order)
@@ -363,25 +311,6 @@ fn weather_code_to_icon_index(code: i32) -> i32 {
     }
 }
 
-/// Get the day of the week using the Sakamoto algorithm
-fn day_of_week_sakamoto(year: i32, month: i32, day: i32) -> &'static str {
-    let mut y = year;
-    let t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
-    if month < 3 {
-        y -= 1;
-    }
-    let dow = (y + y / 4 - y / 100 + y / 400 + t[(month - 1) as usize] + day) % 7;
-    match dow {
-        0 => "SUN",
-        1 => "MON",
-        2 => "TUE",
-        3 => "WED",
-        4 => "THU",
-        5 => "FRI",
-        _ => "SAT",
-    }
-}
-
 fn wind_dir_text(direction: i32) -> &'static str {
     match direction {
         0..22 => "N",
@@ -393,41 +322,5 @@ fn wind_dir_text(direction: i32) -> &'static str {
         247..293 => "W",
         293..337 => "NW",
         _ => "N",
-    }
-}
-
-// TODO: consider moving to ssd1680 library
-/// Adapter to convert BinaryColor drawings to Gray2
-struct BinaryToGray2Adapter<'a, T>(&'a mut T);
-
-impl<'a, T> DrawTarget for BinaryToGray2Adapter<'a, T>
-where
-    T: DrawTarget<Color = Gray2> + OriginDimensions,
-{
-    type Color = BinaryColor;
-    type Error = T::Error;
-
-    fn draw_iter<I>(&mut self, pixels: I) -> core::result::Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = Pixel<Self::Color>>,
-    {
-        self.0
-            .draw_iter(pixels.into_iter().map(|Pixel(point, color)| {
-                let gray2_color = if color.is_off() {
-                    Gray2::BLACK
-                } else {
-                    Gray2::WHITE
-                };
-                Pixel(point, gray2_color)
-            }))
-    }
-}
-
-impl<'a, T> OriginDimensions for BinaryToGray2Adapter<'a, T>
-where
-    T: OriginDimensions,
-{
-    fn size(&self) -> Size {
-        self.0.size()
     }
 }

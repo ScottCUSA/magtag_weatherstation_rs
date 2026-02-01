@@ -229,3 +229,19 @@ pub async fn http_get(
 
     Ok(resp)
 }
+
+/// Extracts the JSON payload from an HTTP response buffer
+pub fn extract_json_payload(buf: &[u8]) -> &[u8] {
+    // Find where JSON starts (after HTTP headers or at first JSON character)
+    let start = buf
+        .windows(4)
+        .position(|window| window == b"\r\n\r\n")
+        .map(|pos| pos + 4)
+        .or_else(|| buf.iter().position(|&b| b == b'{' || b == b'['))
+        .unwrap_or(0);
+
+    // Find where the buffer ends (at null byte or end of buffer)
+    let end = buf.iter().position(|&b| b == b'\0').unwrap_or(buf.len());
+
+    &buf[start..end]
+}

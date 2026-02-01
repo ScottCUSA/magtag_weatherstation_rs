@@ -6,7 +6,7 @@ use crate::{
         WIND_SPEED_UNIT,
     },
     error::{AppError, Result},
-    http::{http_get, url_encode_component},
+    http::{extract_json_payload, http_get, url_encode_component},
     weather::model::OpenMeteoResponse,
 };
 
@@ -16,7 +16,9 @@ const DAILY_FIELDS: &str = "weather_code,temperature_2m_max,temperature_2m_min,s
 const HEADERS_STR: &str = "Accept: application/json";
 pub const OPEN_METEO_URL: &str = "api.open-meteo.com";
 
-/// Fetch weather and return a parsed `OpenMeteoResponse`.
+/// Fetch weather from Open-Meteo using the provided network `stack`.
+///
+/// Returns a parsed `OpenMeteoResponse` on success or an error `Result` on failure.
 pub async fn fetch_weather(stack: embassy_net::Stack<'static>) -> Result<OpenMeteoResponse> {
     let buf = fetch_weather_data(
         stack,
@@ -41,12 +43,7 @@ pub async fn fetch_weather(stack: embassy_net::Stack<'static>) -> Result<OpenMet
 }
 
 /// Fetch weather data for a custom latitude, longitude and timezone.
-///
-/// - `latitude` and `longitude` are passed as f64 and formatted with 6 decimal places.
-/// - `timezone` is a UTF-8 string and will be percent-encoded when inserted into the URL.
-///
-/// Returns a fixed-size buffer containing the raw HTTP response bytes (same behaviour as before).
-pub async fn fetch_weather_data(
+async fn fetch_weather_data(
     stack: embassy_net::Stack<'static>,
     latitude: &str,
     longitude: &str,
@@ -68,13 +65,7 @@ pub async fn fetch_weather_data(
 }
 
 /// Build an Open-Meteo HTTP request for the given latitude, longitude and timezone.
-///
-/// This function uses `heapless::String` so it works in `no_std` contexts.
-/// The query is percent-encoded according to RFC 3986 for characters outside the
-/// unreserved set (ALPHA / DIGIT / "-" / "." / "_" / "~").
-///
-/// Returns a heapless string containing the full HTTP/1.0 request (headers + body).
-pub fn build_open_meteo_query(
+fn build_open_meteo_query(
     latitude: &str,
     longitude: &str,
     timezone: &str,
@@ -95,20 +86,4 @@ pub fn build_open_meteo_query(
     )
     .map_err(|_| AppError::HttpRequestFailed)?;
     Ok(query)
-}
-
-/// Extracts the JSON payload from an HTTP response buffer
-fn extract_json_payload(buf: &[u8]) -> &[u8] {
-    // Find where JSON starts (after HTTP headers or at first JSON character)
-    let start = buf
-        .windows(4)
-        .position(|window| window == b"\r\n\r\n")
-        .map(|pos| pos + 4)
-        .or_else(|| buf.iter().position(|&b| b == b'{' || b == b'['))
-        .unwrap_or(0);
-
-    // Find where the buffer ends (at null byte or end of buffer)
-    let end = buf.iter().position(|&b| b == b'\0').unwrap_or(buf.len());
-
-    &buf[start..end]
 }

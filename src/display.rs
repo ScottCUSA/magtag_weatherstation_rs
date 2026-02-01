@@ -10,10 +10,8 @@ use ssd1680::prelude::*;
 
 use crate::{
     error::{AppError, Result},
-    weather::{
-        graphics::{draw_text, draw_weather_station_view},
-        model::OpenMeteoResponse,
-    },
+    graphics::draw_text,
+    weather::{draw_weather_station_view, model::OpenMeteoResponse},
 };
 
 pub fn display_weather(

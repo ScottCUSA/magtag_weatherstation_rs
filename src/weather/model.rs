@@ -70,7 +70,7 @@ pub struct Daily {
     pub wind_direction_10m_dominant: Vec<i32, MAX_DAYS>,
 }
 
-/// Daily Units
+/// Daily units response struct
 #[derive(Deserialize, Debug)]
 pub struct DailyUnits {
     pub time: String<BUF_LEN>,
@@ -84,9 +84,6 @@ pub struct DailyUnits {
 }
 
 /// Parse the weather JSON response into an OpenMeteoResponse struct
-/// Allow converting a byte slice into an owned, borrowed `OpenMeteoResponse` using the
-/// standard library conversion trait. This makes the parser usable in generic
-/// contexts where a TryFrom impl is expected.
 impl core::convert::TryFrom<&[u8]> for OpenMeteoResponse {
     type Error = json_core::de::Error;
 
@@ -97,7 +94,7 @@ impl core::convert::TryFrom<&[u8]> for OpenMeteoResponse {
     }
 }
 
-/// Provide a From impl so callers can do `String::from(&api_response)`.
+/// Provide a From impl so callers can do `String::from(&api_response)`
 impl From<&OpenMeteoResponse> for String<1024> {
     /// Build a small human-readable summary using a heapless string
     fn from(parsed: &OpenMeteoResponse) -> Self {
