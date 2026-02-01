@@ -6,10 +6,8 @@ use crate::{
         WIND_SPEED_UNIT,
     },
     error::{AppError, Result},
-    weather::{
-        http::{http_get, url_encode_component},
-        model::OpenMeteoResponse,
-    },
+    http::{http_get, url_encode_component},
+    weather::model::OpenMeteoResponse,
 };
 
 use alloc::{string::String, vec::Vec};
