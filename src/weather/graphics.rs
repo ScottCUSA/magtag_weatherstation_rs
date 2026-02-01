@@ -89,27 +89,6 @@ where
     draw_future_weather_view(weather_data, buffer)
 }
 
-pub fn draw_text_at_point<D>(text: &str, top_left: Point, size: Size, buffer: &mut D) -> Result<()>
-where
-    D: DrawTarget<Color = Gray2> + OriginDimensions,
-    <D as DrawTarget>::Error: core::fmt::Debug,
-{
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
-
-    let bounds = Rectangle::new(top_left, size);
-    let text_box = TextBox::with_textbox_style(text, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        AppError::GraphicsError
-    })?;
-
-    Ok(())
-}
-
 pub fn draw_text<D>(text: &str, x: i32, y: i32, w: u32, h: u32, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
@@ -345,6 +324,27 @@ where
         log::error!("Failed to draw weather icon to display buffer: {:?}", e);
         AppError::GraphicsError
     })
+}
+
+fn draw_text_at_point<D>(text: &str, top_left: Point, size: Size, buffer: &mut D) -> Result<()>
+where
+    D: DrawTarget<Color = Gray2> + OriginDimensions,
+    <D as DrawTarget>::Error: core::fmt::Debug,
+{
+    let textbox_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::FitToText)
+        .alignment(HorizontalAlignment::Left)
+        .paragraph_spacing(2)
+        .build();
+
+    let bounds = Rectangle::new(top_left, size);
+    let text_box = TextBox::with_textbox_style(text, bounds, *CHARACTER_STYLE, textbox_style);
+    text_box.draw(buffer).map_err(|e| {
+        log::error!("Failed to draw text to display buffer: {:?}", e);
+        AppError::GraphicsError
+    })?;
+
+    Ok(())
 }
 
 /// Map weather codes to icon indices in the sprite sheet (3x3 grid, row-major order)
