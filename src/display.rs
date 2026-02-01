@@ -35,20 +35,7 @@ pub fn display_weather(
     display_buffer(&display, spi_device, busy, dc, rst)
 }
 
-pub fn display_text(
-    text: &str,
-    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
-    busy: Input<'static>,
-    dc: Output<'static>,
-    rst: Output<'static>,
-) -> Result<()> {
-    log::info!("Showing text on display: \n{}", text);
-    let mut buffer = Display2in9Gray2::new();
-    draw_text(text, 0, 0, 296, 0, &mut buffer)?;
-    display_buffer(&buffer, spi_device, busy, dc, rst)
-}
-
-fn display_buffer(
+pub fn display_buffer(
     buffer: &Display2in9Gray2,
     spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
     busy: Input<'static>,
@@ -77,6 +64,19 @@ fn display_buffer(
         })?;
     log::info!("updated display successfully");
     Ok(())
+}
+
+pub fn display_text(
+    text: &str,
+    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    busy: Input<'static>,
+    dc: Output<'static>,
+    rst: Output<'static>,
+) -> Result<()> {
+    log::info!("Showing text on display: \n{}", text);
+    let mut buffer = Display2in9Gray2::new();
+    draw_text(text, 0, 0, 296, 0, &mut buffer)?;
+    display_buffer(&buffer, spi_device, busy, dc, rst)
 }
 
 /// Show an error message on the display.

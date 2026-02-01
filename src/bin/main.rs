@@ -20,12 +20,10 @@ use esp_radio::Controller;
 use heapless::format;
 use log::info;
 use magtag_weatherstation::{
+    display::{display_app_error, display_error_text, display_weather},
     network::{connection, net_task},
     sleep::enter_deep_sleep_secs,
-    weather::{
-        display::{display_app_error, display_error_text},
-        fetch_weather,
-    },
+    weather::fetch_weather,
 };
 
 const SLEEP_ON_ERROR_SECS: u64 = 60 * 5;
@@ -183,7 +181,7 @@ async fn main(spawner: Spawner) -> ! {
     };
 
     // Fetch and display weather data
-    match magtag_weatherstation::weather::display_weather(weather_data, spi_device, busy, dc, rst) {
+    match display_weather(weather_data, spi_device, busy, dc, rst) {
         Ok(_) => {
             log::info!("Weather display successful, sleeping for 24 hours");
             enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS);
