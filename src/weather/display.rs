@@ -62,7 +62,7 @@ pub fn display_weather(
     Ok(())
 }
 
-pub fn text_display(
+pub fn display_text(
     text: &str,
     spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
     busy: Input<'static>,
@@ -104,5 +104,5 @@ pub fn show_app_error(
     dc: Output<'static>,
     rst: Output<'static>,
 ) {
-    let _ = text_display(msg, spi_device, busy, dc, rst);
+    let _ = display_text(msg, spi_device, busy, dc, rst);
 }
