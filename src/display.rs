@@ -134,7 +134,7 @@ pub fn graphical_display(
     })?;
 
     draw_today_weather_icon(
-        *weather_data.daily.weather_code.get(0).unwrap(),
+        *weather_data.daily.weather_code.first().unwrap(),
         &mut display,
     )
     .map_err(|_| {
@@ -147,7 +147,7 @@ pub fn graphical_display(
         AppError::DisplayError
     })?;
 
-    draw_today_date(&weather_data.daily.time.get(0).unwrap(), &mut display).map_err(|_| {
+    draw_today_date(weather_data.daily.time.first().unwrap(), &mut display).map_err(|_| {
         log::error!("Failed to draw today weather view to display buffer");
         AppError::DisplayError
     })?;
@@ -160,8 +160,8 @@ pub fn graphical_display(
     )?;
 
     draw_today_high_low(
-        *weather_data.daily.temperature_2m_max.get(0).unwrap(),
-        *weather_data.daily.temperature_2m_min.get(0).unwrap(),
+        *weather_data.daily.temperature_2m_max.first().unwrap(),
+        *weather_data.daily.temperature_2m_min.first().unwrap(),
         &weather_data
             .daily_units
             .temperature_2m_max
@@ -176,13 +176,13 @@ pub fn graphical_display(
     })?;
 
     draw_today_wind(
-        *weather_data.daily.wind_speed_10m_max.get(0).unwrap(),
+        *weather_data.daily.wind_speed_10m_max.first().unwrap(),
         *weather_data
             .daily
             .wind_direction_10m_dominant
-            .get(0)
+            .first()
             .unwrap(),
-        &weather_data.daily_units.wind_speed_10m_max,
+        weather_data.daily_units.wind_speed_10m_max,
         &mut display,
     )
     .map_err(|_| {
@@ -191,8 +191,8 @@ pub fn graphical_display(
     })?;
 
     draw_today_sunrise_sunset(
-        &weather_data.daily.sunrise.get(0).unwrap(),
-        &weather_data.daily.sunset.get(0).unwrap(),
+        weather_data.daily.sunrise.first().unwrap(),
+        weather_data.daily.sunset.first().unwrap(),
         &mut display,
     )
     .map_err(|_| {

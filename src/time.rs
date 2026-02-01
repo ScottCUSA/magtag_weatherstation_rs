@@ -2,7 +2,7 @@ use time::{Date, Month, Weekday};
 
 fn ordinal(n: u8) -> &'static str {
     match n {
-        11 | 12 | 13 => "th",
+        11..=13 => "th",
         _ => match n % 10 {
             1 => "st",
             2 => "nd",

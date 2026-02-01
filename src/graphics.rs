@@ -80,25 +80,23 @@ where
 }
 
 /// Draw the background image onto the buffer
-pub fn draw_background_image<D>(display: &mut D) -> Result<(), AppError>
+pub fn draw_background_image<D>(buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
 {
     // Convert and draw BinaryColor image to Gray2 buffer
     let image = Image::new(&*WEATHER_BG, Point::zero());
-    image
-        .draw(&mut BinaryToGray2Adapter(display))
-        .map_err(|_| {
-            log::error!("Failed to draw image to display buffer");
-            AppError::DisplayError
-        })?;
+    image.draw(&mut BinaryToGray2Adapter(buffer)).map_err(|_| {
+        log::error!("Failed to draw image to display buffer");
+        AppError::DisplayError
+    })?;
 
     log::info!("Background image drawn successfully");
     Ok(())
 }
 
 /// Draw the today weather view onto the display buffer
-pub fn draw_today_date<D>(date: &str, display: &mut D) -> Result<(), AppError>
+pub fn draw_today_date<D>(date: &str, buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -115,7 +113,7 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(8, 16), Size::new(296, 0));
     let text_box = TextBox::with_textbox_style(&date, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
+    if let Err(e) = text_box.draw(buffer) {
         log::error!("Failed to draw text to display buffer: {:?}", e);
         return Err(AppError::DisplayError);
     }
@@ -125,7 +123,7 @@ where
 }
 
 /// Draw the today weather view onto the display buffer
-pub fn draw_today_lat_long<D>(lat: f32, long: f32, display: &mut D) -> Result<(), AppError>
+pub fn draw_today_lat_long<D>(lat: f32, long: f32, buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -145,7 +143,7 @@ where
 
     let text_box =
         TextBox::with_textbox_style(&lat_long_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
+    if let Err(e) = text_box.draw(buffer) {
         log::error!("Failed to draw text to display buffer: {:?}", e);
         return Err(AppError::DisplayError);
     }
@@ -158,7 +156,7 @@ pub fn draw_today_high_low<D>(
     high: f32,
     low: f32,
     temp_unit: &char,
-    display: &mut D,
+    buffer: &mut D,
 ) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
@@ -178,7 +176,7 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(100, 60), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
+    if let Err(e) = text_box.draw(buffer) {
         log::error!("Failed to draw text to display buffer: {:?}", e);
         return Err(AppError::DisplayError);
     }
@@ -190,7 +188,7 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(140, 60), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
+    if let Err(e) = text_box.draw(buffer) {
         log::error!("Failed to draw low_temp to display buffer: {:?}", e);
         return Err(AppError::DisplayError);
     }
@@ -203,7 +201,7 @@ pub fn draw_today_wind<D>(
     wind_speed: f32,
     wind_dir: i32,
     wind_unit: &str,
-    display: &mut D,
+    buffer: &mut D,
 ) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
@@ -225,7 +223,7 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(95, 90), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&wind_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
+    if let Err(e) = text_box.draw(buffer) {
         log::error!("Failed to draw windspeed to display buffer: {:?}", e);
         return Err(AppError::DisplayError);
     }
@@ -235,13 +233,13 @@ where
     Ok(())
 }
 
-pub fn draw_today_weather_icon<D>(weather_code: i32, display: &mut D) -> Result<(), AppError>
+pub fn draw_today_weather_icon<D>(weather_code: i32, buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
     let icon = weather_code_to_icon_index(weather_code);
-    draw_weather_icon(display, icon, Point::new(6, 40), 70).map_err(|_| {
+    draw_weather_icon(icon, Point::new(6, 40), 70, buffer).map_err(|_| {
         log::error!("Failed to draw image to display buffer");
         AppError::DisplayError
     })?;
@@ -252,7 +250,7 @@ where
 pub fn draw_today_sunrise_sunset<D>(
     sunrise: &str,
     sunset: &str,
-    display: &mut D,
+    buffer: &mut D,
 ) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
@@ -267,19 +265,19 @@ where
     let time = get_iso_8601_hh_mm(sunrise).unwrap();
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(30, 113), Size::new(296, 0));
-    let text_box = TextBox::with_textbox_style(&time, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
+    let text_box = TextBox::with_textbox_style(time, bounds, *CHARACTER_STYLE, textbox_style);
+    if let Err(e) = text_box.draw(buffer) {
         log::error!("Failed to draw text to display buffer: {:?}", e);
         return Err(AppError::DisplayError);
     }
     log::info!("sunrise drawn successfully");
 
     // Draw sunset
-    let time = get_iso_8601_hh_mm(&sunset).unwrap();
+    let time = get_iso_8601_hh_mm(sunset).unwrap();
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(115, 113), Size::new(296, 0));
-    let text_box = TextBox::with_textbox_style(&time, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
+    let text_box = TextBox::with_textbox_style(time, bounds, *CHARACTER_STYLE, textbox_style);
+    if let Err(e) = text_box.draw(buffer) {
         log::error!("Failed to draw text to display buffer: {:?}", e);
         return Err(AppError::DisplayError);
     }
@@ -290,7 +288,7 @@ where
 /// Draw the future weather view onto the display buffer
 pub fn draw_future_weather_view<D>(
     weather_data: &OpenMeteoResponse,
-    display: &mut D,
+    buffer: &mut D,
 ) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
@@ -331,14 +329,14 @@ where
             Size::new(20, 0),
         );
         let text_box = TextBox::with_textbox_style(dow, bounds, *CHARACTER_STYLE, textbox_style);
-        if let Err(e) = text_box.draw(display) {
+        if let Err(e) = text_box.draw(buffer) {
             log::error!("Failed to draw text to display buffer: {:?}", e);
             return Err(AppError::DisplayError);
         }
 
         // weather icon
         let icon = weather_code_to_icon_index(*weather_data.daily.weather_code.get(i).unwrap());
-        draw_weather_icon(display, icon, start_point + Point::new(20, 0), 20).map_err(|_| {
+        draw_weather_icon(icon, start_point + Point::new(20, 0), 20, buffer).map_err(|_| {
             log::error!("Failed to draw image to display buffer");
             AppError::DisplayError
         })?;
@@ -357,7 +355,7 @@ where
         );
         let text_box =
             TextBox::with_textbox_style(&min_buf, bounds, *CHARACTER_STYLE, textbox_style);
-        if let Err(e) = text_box.draw(display) {
+        if let Err(e) = text_box.draw(buffer) {
             log::error!("Failed to draw text to display buffer: {:?}", e);
             return Err(AppError::DisplayError);
         }
@@ -376,7 +374,7 @@ where
         );
         let text_box =
             TextBox::with_textbox_style(&max_buf, bounds, *CHARACTER_STYLE, textbox_style);
-        if let Err(e) = text_box.draw(display) {
+        if let Err(e) = text_box.draw(buffer) {
             log::error!("Failed to draw text to display buffer: {:?}", e);
             return Err(AppError::DisplayError);
         }
@@ -393,10 +391,10 @@ where
 /// * `position` - Where to draw the icon on the display
 /// * `size` - Either 20 or 70 for the icon size
 pub fn draw_weather_icon<D>(
-    display: &mut D,
     icon_index: i32,
     position: Point,
     size: u32,
+    buffer: &mut D,
 ) -> Result<(), D::Error>
 where
     D: DrawTarget<Color = Gray2>,
@@ -427,7 +425,7 @@ where
     );
     let sub_image = sprite_sheet.sub_image(&rect);
     log::trace!("{:?}", sub_image);
-    Image::new(&sub_image, position).draw(display)
+    Image::new(&sub_image, position).draw(buffer)
 }
 
 /// Map weather codes to icon indices in the sprite sheet (3x3 grid, row-major order)
