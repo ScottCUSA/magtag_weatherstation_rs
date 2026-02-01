@@ -54,10 +54,10 @@ WiFi credentials are read from environment variables at compile time:
 src/
 ├── bin/
 |   ├── tasks/
-|   |   ├── display.rs   # Display embassy tasks
-|   |   ├── network.rs   # Network embasy tasks
+|   |   ├── display.rs   # Display Embassy tasks
+|   |   ├── network.rs   # Network Embassy tasks
 |   |   ├── mod.rs       # tasks module exports
-|   |   └── weather.rs   # Weather embassy tasks
+|   |   └── weather.rs   # Weather Embassy tasks
 │   └── main.rs          # Application entry point and main loop
 ├── config.rs            # Configuration constants (WiFi, location, units)
 ├── display.rs           # E-paper display initialization and rendering
