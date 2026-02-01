@@ -23,16 +23,20 @@ pub fn build_open_meteo_query(
     latitude: &str,
     longitude: &str,
     timezone: &str,
+    temperature_unit: &str,
+    windspeed_unit: &str,
 ) -> Result<String, AppError> {
-    let lat_enc: String = url_encode_component(latitude)?;
-    let long_enc: String = url_encode_component(longitude)?;
-    let tz_enc: String = url_encode_component(timezone)?;
+    let lat_enc = url_encode_component(latitude)?;
+    let long_enc = url_encode_component(longitude)?;
+    let tz_enc = url_encode_component(timezone)?;
+    let temp_unit_enc = url_encode_component(temperature_unit)?;
+    let windspeed_unit_enc = url_encode_component(windspeed_unit)?;
 
     let mut query: String = String::new();
     write!(
         query,
-        "/v1/forecast?latitude={}&longitude={}&daily={}&timezone={}",
-        lat_enc, long_enc, DAILY_FIELDS, tz_enc
+        "/v1/forecast?latitude={}&longitude={}&daily={}&timezone={}&temperature_unit={}&wind_speed_unit={}",
+        lat_enc, long_enc, DAILY_FIELDS, tz_enc, temp_unit_enc, windspeed_unit_enc
     )
     .map_err(|_| AppError::HttpRequestFailed)?;
     Ok(query)
@@ -49,9 +53,17 @@ pub async fn fetch_weather_data(
     latitude: &str,
     longitude: &str,
     timezone: &str,
+    temperature_unit: &str,
+    windspeed_unit: &str,
 ) -> Result<Vec<u8>, AppError> {
     // Build request using custom coordinates/timezone
-    let query = build_open_meteo_query(latitude, longitude, timezone)?;
+    let query = build_open_meteo_query(
+        latitude,
+        longitude,
+        timezone,
+        temperature_unit,
+        windspeed_unit,
+    )?;
 
     // Perform HTTP GET request
     http_get(stack, OPEN_METEO_URL, &query, Some(HEADERS_STR)).await

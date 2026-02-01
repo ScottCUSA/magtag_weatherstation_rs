@@ -26,8 +26,6 @@ use magtag_weatherstation::{
     weather::fetch_and_display_weather,
 };
 
-const HEAP_KB: usize = 72;
-
 const SLEEP_ON_ERROR_SECS: u64 = 60 * 5;
 const SLEEP_ON_SUCCESS_SECS: u64 = 60 * 60 * 24;
 
@@ -52,7 +50,6 @@ async fn main(spawner: Spawner) -> ! {
     info!("Initialize peripherals");
     let peripherals = esp_hal::init(esp_hal::Config::default());
 
-    esp_alloc::heap_allocator!(size: HEAP_KB * 1024);
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
 
     // Initialize RTC for deep sleep

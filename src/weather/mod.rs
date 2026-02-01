@@ -8,13 +8,13 @@ use once_cell::sync::Lazy;
 
 use heapless::{LinearMap, String, format};
 
-use self::model::ApiResponse;
+use self::model::OpenMeteoResponse;
 use crate::{
-    config::OPENMETEO_LATITUDE,
-    display::{show_app_error, show_on_display},
-};
-use crate::{
-    config::{OPENMETEO_LONGITUDE, OPENMETEO_TIMEZONE},
+    config::{
+        OPENMETEO_LATITUDE, OPENMETEO_LONGITUDE, OPENMETEO_TIMEZONE, TEMPERATURE_UNIT,
+        WIND_SPEED_UNIT,
+    },
+    display::{show_app_error, text_display},
     error::AppError,
 };
 
@@ -65,6 +65,8 @@ pub async fn fetch_and_display_weather(
         OPENMETEO_LATITUDE,
         OPENMETEO_LONGITUDE,
         OPENMETEO_TIMEZONE,
+        TEMPERATURE_UNIT,
+        WIND_SPEED_UNIT,
     )
     .await
     {
@@ -79,22 +81,23 @@ pub async fn fetch_and_display_weather(
         }
     };
 
-    match ApiResponse::try_from(extract_json_payload(&buf)) {
+    match OpenMeteoResponse::try_from(extract_json_payload(&buf)) {
         Ok(parsed) => {
             log::info!("Parsed response: timezone {}", parsed.timezone);
 
             #[cfg(feature = "graphical")]
             {
                 // Display graphical background
-                use crate::graphics::display_graphical_weather;
-                let _ = display_graphical_weather(parsed, spi_device, busy, dc, rst);
+
+                use crate::display::graphical_display;
+                let _ = graphical_display(parsed, spi_device, busy, dc, rst);
             }
 
             #[cfg(not(feature = "graphical"))]
             {
                 // create the textual summary
                 let out = String::from(&parsed);
-                let _ = show_on_display(out.as_str(), spi_device, busy, dc, rst);
+                let _ = text_display(out.as_str(), spi_device, busy, dc, rst);
             }
             Ok(())
         }
@@ -105,7 +108,7 @@ pub async fn fetch_and_display_weather(
             use core::fmt::Write as _;
             let _ = write!(out, "JSON parse error\n{:?}", e);
 
-            let _ = show_on_display(out.as_str(), spi_device, busy, dc, rst);
+            let _ = text_display(out.as_str(), spi_device, busy, dc, rst);
 
             Err(AppError::JsonParseFailed)
         }

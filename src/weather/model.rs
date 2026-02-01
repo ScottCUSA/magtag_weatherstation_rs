@@ -6,11 +6,11 @@ use serde_json_core::{self as json_core};
 use crate::weather::WEATHER_CODES;
 
 // Heapless sizing limits
-const MAX_DAYS: usize = 16;
+const MAX_DAYS: usize = 7;
 
 /// Meteo API response struct
 #[derive(Deserialize, Debug)]
-pub struct ApiResponse<'a> {
+pub struct OpenMeteoResponse<'a> {
     pub latitude: f32,
     pub longitude: f32,
     pub generationtime_ms: f32,
@@ -18,7 +18,7 @@ pub struct ApiResponse<'a> {
     pub timezone: &'a str,
     pub timezone_abbreviation: &'a str,
     pub elevation: f32,
-    // pub daily_units: &'a str,
+    pub daily_units: DailyUnits<'a>,
     pub daily: Daily<'a>,
 }
 
@@ -36,24 +36,38 @@ pub struct Daily<'a> {
     pub wind_direction_10m_dominant: Vec<i32, MAX_DAYS>,
 }
 
+/// Daily Units
+#[derive(Deserialize, Debug)]
+pub struct DailyUnits<'a> {
+    #[serde(borrow)]
+    pub time: &'a str,
+    pub weather_code: &'a str,
+    pub temperature_2m_max: &'a str,
+    pub temperature_2m_min: &'a str,
+    pub sunrise: &'a str,
+    pub sunset: &'a str,
+    pub wind_speed_10m_max: &'a str,
+    pub wind_direction_10m_dominant: &'a str,
+}
+
 /// Parse the weather JSON response into an ApiResponse struct
 /// Allow converting a byte slice into an owned, borrowed `ApiResponse` using the
 /// standard library conversion trait. This makes the parser usable in generic
 /// contexts where a TryFrom impl is expected.
-impl<'de> core::convert::TryFrom<&'de [u8]> for ApiResponse<'de> {
+impl<'de> core::convert::TryFrom<&'de [u8]> for OpenMeteoResponse<'de> {
     type Error = json_core::de::Error;
 
     fn try_from(value: &'de [u8]) -> Result<Self, Self::Error> {
         // serde_json_core::from_slice returns (T, consumed)
-        let (parsed, _consumed) = json_core::from_slice::<ApiResponse<'de>>(value)?;
+        let (parsed, _consumed) = json_core::from_slice::<OpenMeteoResponse<'de>>(value)?;
         Ok(parsed)
     }
 }
 
 /// Provide a From impl so callers can do `String::from(&api_response)`.
-impl<'a> From<&ApiResponse<'a>> for String<1024> {
+impl<'a> From<&OpenMeteoResponse<'a>> for String<1024> {
     /// Build a small human-readable summary using a heapless string
-    fn from(parsed: &ApiResponse<'a>) -> Self {
+    fn from(parsed: &OpenMeteoResponse<'a>) -> Self {
         let mut out: String<1024> = String::new();
         use core::fmt::Write as _;
         let _ = write!(

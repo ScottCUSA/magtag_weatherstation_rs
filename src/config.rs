@@ -6,3 +6,5 @@ pub const WIFI_PASSWORD: &str = env!("PASSWORD");
 pub const OPENMETEO_LATITUDE: &str = "39.868";
 pub const OPENMETEO_LONGITUDE: &str = "-104.9719";
 pub const OPENMETEO_TIMEZONE: &str = "America/Denver";
+pub const TEMPERATURE_UNIT: &str = "fahrenheit"; // fahrenheit or celsius
+pub const WIND_SPEED_UNIT: &str = "mph"; // mph, kmh
