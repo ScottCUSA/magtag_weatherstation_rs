@@ -138,10 +138,6 @@ Key dependencies include:
 - **serde** / **serde-json-core** — JSON parsing in `no_std`
 - **heapless** — Stack-allocated collections
 
-## Heap Configuration
-
-The firmware uses a custom heap allocator with 64KB allocated from reclaimed RAM. This is sufficient for network buffers, HTTP responses, and display rendering.
-
 ## Troubleshooting
 
 ### Build Errors
