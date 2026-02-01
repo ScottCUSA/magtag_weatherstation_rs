@@ -10,7 +10,7 @@ use ssd1680::prelude::*;
 
 use crate::{
     error::{AppError, Result},
-    graphics::draw_text,
+    graphics::draw_text_xy_wh,
     weather::{draw_weather_station_view, model::OpenMeteoResponse},
 };
 
@@ -42,7 +42,7 @@ pub fn display_text(
 ) -> Result<()> {
     log::info!("Showing text on display: \n{}", text);
     let mut buffer = Display2in9Gray2::new();
-    draw_text(text, 0, 0, 296, 0, &mut buffer)?;
+    draw_text_xy_wh(text, 0, 0, 296, 0, &mut buffer)?;
     display_buffer(&buffer, spi_device, busy, dc, rst)
 }
 

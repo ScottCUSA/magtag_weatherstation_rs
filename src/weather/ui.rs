@@ -11,7 +11,7 @@ use once_cell::sync::Lazy;
 
 use crate::{
     error::Result,
-    graphics::{draw_binary_color_image, draw_image, draw_text, draw_text_at_point},
+    graphics::{draw_binary_color_image, draw_image, draw_text, draw_text_xy_wh},
     time::{format_date, iso_8601_hh_mm, short_day_of_week_sakamoto},
     weather::model::OpenMeteoResponse,
 };
@@ -88,7 +88,7 @@ where
     // Draw Today's Date
     // need to convert the ISO 8601 time stamp to a nice string
     let date = format_date(date).unwrap();
-    draw_text(&date, 8, 16, 296, 0, buffer)?;
+    draw_text_xy_wh(&date, 8, 16, 296, 0, buffer)?;
 
     log::info!("Today's date drawn successfully");
     Ok(())
@@ -103,7 +103,7 @@ where
     // Draw the Latitute and Longitude
     let mut lat_long_buf: String<24> = String::new();
     write!(&mut lat_long_buf, "({:.4}, {:.4})", lat, long).unwrap();
-    draw_text(&lat_long_buf, 8, 27, 296, 0, buffer)?;
+    draw_text_xy_wh(&lat_long_buf, 8, 27, 296, 0, buffer)?;
 
     log::info!("lat, long drawn successfully");
     Ok(())
@@ -119,13 +119,13 @@ where
     // Draw the low temperatures
     temp_buf.clear();
     write!(&mut temp_buf, "{:.0}{}", low, temp_unit).unwrap();
-    draw_text(&temp_buf, 100, 60, 80, 0, buffer)?;
+    draw_text_xy_wh(&temp_buf, 100, 60, 80, 0, buffer)?;
     log::info!("low temp drawn successfully");
 
     // Draw the high temperature
     temp_buf.clear();
     write!(&mut temp_buf, "{:.0}{}", high, temp_unit).unwrap();
-    draw_text(&temp_buf, 140, 60, 80, 0, buffer)?;
+    draw_text_xy_wh(&temp_buf, 140, 60, 80, 0, buffer)?;
     log::info!("high temp drawn successfully");
 
     Ok(())
@@ -142,7 +142,7 @@ where
     let wind_dir = wind_dir_text(wind_dir);
     wind_buf.clear();
     write!(&mut wind_buf, "{}{} {}", wind_speed, wind_unit, wind_dir).unwrap();
-    draw_text(&wind_buf, 95, 90, 80, 0, buffer)?;
+    draw_text_xy_wh(&wind_buf, 95, 90, 80, 0, buffer)?;
     log::info!("windspeed drawn successfully");
 
     Ok(())
@@ -166,12 +166,12 @@ where
 {
     // Draw sunrise
     let time = iso_8601_hh_mm(sunrise).unwrap();
-    draw_text(time, 30, 113, 296, 0, buffer)?;
+    draw_text_xy_wh(time, 30, 113, 296, 0, buffer)?;
     log::info!("sunrise drawn successfully");
 
     // Draw sunset
     let time = iso_8601_hh_mm(sunset).unwrap();
-    draw_text(time, 115, 113, 296, 0, buffer)?;
+    draw_text_xy_wh(time, 115, 113, 296, 0, buffer)?;
     log::info!("sunset drawn successfully");
     Ok(())
 }
@@ -202,7 +202,7 @@ where
         let m = date[5..7].parse().unwrap();
         let d = date[8..10].parse().unwrap();
         let dow = short_day_of_week_sakamoto(y, m, d).unwrap();
-        draw_text_at_point(
+        draw_text(
             dow,
             start_point + Point::new(0, 5),
             Size::new(20, 0),
@@ -221,7 +221,7 @@ where
             weather_data.daily.temperature_2m_min[i], temp_unit
         )
         .unwrap();
-        draw_text_at_point(
+        draw_text(
             &temp_buf,
             start_point + Point::new(45, 5),
             Size::new(30, 6),
@@ -236,7 +236,7 @@ where
             weather_data.daily.temperature_2m_max[i], temp_unit
         )
         .unwrap();
-        draw_text_at_point(
+        draw_text(
             &temp_buf,
             start_point + Point::new(75, 5),
             Size::new(30, 0),
