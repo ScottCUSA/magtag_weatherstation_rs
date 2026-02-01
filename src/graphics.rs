@@ -110,8 +110,7 @@ where
     // Draw Today's Date
     // need to convert the ISO 8601 time stamp to a nice string
     let date = format_date(date).unwrap();
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(8, 16), Size::new(296, 0));
+    let bounds = Rectangle::new(Point::new(8, 16), Size::new(296, 0));
     let text_box = TextBox::with_textbox_style(&date, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
@@ -138,9 +137,7 @@ where
     let mut lat_long_buf: String<24> = String::new();
     write!(&mut lat_long_buf, "({:.4}, {:.4})", lat, long).unwrap();
 
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(8, 27), Size::new(296, 0));
-
+    let bounds = Rectangle::new(Point::new(8, 27), Size::new(296, 0));
     let text_box =
         TextBox::with_textbox_style(&lat_long_buf, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
@@ -173,8 +170,7 @@ where
     // Draw the low temperatures
     temp_buf.clear();
     write!(&mut temp_buf, "{:.0}{}", low, temp_unit).unwrap();
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(100, 60), Size::new(80, 0));
+    let bounds = Rectangle::new(Point::new(100, 60), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw low_temp to display buffer: {:?}", e);
@@ -185,8 +181,7 @@ where
     // Draw the high temperature
     temp_buf.clear();
     write!(&mut temp_buf, "{:.0}{}", high, temp_unit).unwrap();
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(140, 60), Size::new(80, 0));
+    let bounds = Rectangle::new(Point::new(140, 60), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw high temp to display buffer: {:?}", e);
@@ -220,8 +215,7 @@ where
     wind_buf.clear();
     write!(&mut wind_buf, "{}{} {}", wind_speed, wind_unit, wind_dir).unwrap();
 
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(95, 90), Size::new(80, 0));
+    let bounds = Rectangle::new(Point::new(95, 90), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&wind_buf, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw windspeed to display buffer: {:?}", e);
@@ -263,8 +257,7 @@ where
         .build();
     // Draw sunrise
     let time = get_iso_8601_hh_mm(sunrise).unwrap();
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(30, 113), Size::new(296, 0));
+    let bounds = Rectangle::new(Point::new(30, 113), Size::new(296, 0));
     let text_box = TextBox::with_textbox_style(time, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
@@ -274,8 +267,7 @@ where
 
     // Draw sunset
     let time = get_iso_8601_hh_mm(sunset).unwrap();
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(115, 113), Size::new(296, 0));
+    let bounds = Rectangle::new(Point::new(115, 113), Size::new(296, 0));
     let text_box = TextBox::with_textbox_style(time, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
@@ -324,10 +316,7 @@ where
         let d = date[8..10].parse().unwrap();
         let dow = day_of_week_sakamoto(y, m, d);
 
-        let bounds = embedded_graphics::primitives::Rectangle::new(
-            start_point + Point::new(0, 5),
-            Size::new(20, 0),
-        );
+        let bounds = Rectangle::new(start_point + Point::new(0, 5), Size::new(20, 0));
         let text_box = TextBox::with_textbox_style(dow, bounds, *CHARACTER_STYLE, textbox_style);
         text_box.draw(buffer).map_err(|e| {
             log::error!("Failed to draw text to display buffer: {:?}", e);
@@ -349,10 +338,7 @@ where
         )
         .unwrap();
 
-        let bounds = embedded_graphics::primitives::Rectangle::new(
-            start_point + Point::new(45, 5),
-            Size::new(30, 0),
-        );
+        let bounds = Rectangle::new(start_point + Point::new(45, 5), Size::new(30, 0));
         let text_box =
             TextBox::with_textbox_style(&min_buf, bounds, *CHARACTER_STYLE, textbox_style);
         text_box.draw(buffer).map_err(|e| {
@@ -368,10 +354,7 @@ where
         )
         .unwrap();
 
-        let bounds = embedded_graphics::primitives::Rectangle::new(
-            start_point + Point::new(75, 5),
-            Size::new(30, 0),
-        );
+        let bounds = Rectangle::new(start_point + Point::new(75, 5), Size::new(30, 0));
         let text_box =
             TextBox::with_textbox_style(&max_buf, bounds, *CHARACTER_STYLE, textbox_style);
         text_box.draw(buffer).map_err(|e| {
