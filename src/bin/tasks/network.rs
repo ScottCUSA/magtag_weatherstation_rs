@@ -3,7 +3,6 @@ use embassy_time::{Duration, Instant, Timer, with_deadline};
 use esp_radio::wifi::{
     ClientConfig, ModeConfig, WifiController, WifiDevice, WifiEvent, WifiStaState,
 };
-use log::{error, info};
 
 use magtag_weatherstation::config::{
     NETWORK_IP_TIMEOUT_SECS, NETWORK_LINK_TIMEOUT_SECS, WIFI_PASSWORD, WIFI_SSID,
@@ -19,8 +18,8 @@ use heapless::String;
 /// and retries on failures or after disconnects.
 #[embassy_executor::task]
 pub async fn wifi_task(mut controller: WifiController<'static>) {
-    info!("Starting connection task");
-    info!("Device capabilities {:?}", controller.capabilities());
+    log::info!("Starting connection task");
+    log::info!("Device capabilities {:?}", controller.capabilities());
     loop {
         if esp_radio::wifi::sta_state() == WifiStaState::Connected {
             // wait untill disconnected
@@ -35,23 +34,23 @@ pub async fn wifi_task(mut controller: WifiController<'static>) {
                     .with_password(WIFI_PASSWORD.into()),
             );
             if let Err(e) = controller.set_config(&client_config) {
-                error!("Failed to set WiFi config: {:?}", e);
+                log::error!("Failed to set WiFi config: {:?}", e);
                 Timer::after(Duration::from_secs(5)).await;
                 continue;
             }
-            info!("Starting Wifi");
+            log::info!("Starting Wifi");
             if let Err(e) = controller.start_async().await {
-                error!("Failed to start WiFi: {:?}", e);
+                log::error!("Failed to start WiFi: {:?}", e);
                 Timer::after(Duration::from_secs(5)).await;
                 continue;
             }
-            info!("Wifi Started");
+            log::info!("Wifi Started");
 
-            info!("About to connect");
+            log::info!("About to connect");
             match controller.connect_async().await {
-                Ok(_) => info!("Wifi connected!"),
+                Ok(_) => log::info!("Wifi connected!"),
                 Err(e) => {
-                    error!("Failed to connect to wifi: {e:>}");
+                    log::error!("Failed to connect to wifi: {e:>}");
                     Timer::after(Duration::from_secs(5)).await;
                 }
             }

@@ -20,7 +20,6 @@ use esp_hal::{
 use esp_println::logger::init_logger_from_env;
 use esp_radio::Controller;
 use heapless::format;
-use log::info;
 use magtag_weatherstation::{
     display::display_error_text, sleep::enter_deep_sleep_secs, weather::model::OpenMeteoResponse,
 };
@@ -53,7 +52,7 @@ async fn main(spawner: Spawner) -> ! {
     // Initialize logger
     init_logger_from_env();
 
-    info!("Initialize peripherals");
+    log::info!("Initialize peripherals");
     let peripherals = esp_hal::init(esp_hal::Config::default());
 
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
