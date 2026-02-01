@@ -102,8 +102,8 @@ pub fn graphical_display(
     rst: Output<'static>,
 ) -> Result<(), AppError> {
     use crate::graphics::{
-        draw_background_image, draw_future_weather_view, draw_today_date, draw_today_high_low_wind,
-        draw_today_lat_long, draw_today_sunrise_sunset, draw_today_weather_icon,
+        draw_background_image, draw_future_weather_view, draw_today_date, draw_today_high_low,
+        draw_today_lat_long, draw_today_sunrise_sunset, draw_today_weather_icon, draw_today_wind,
     };
 
     let stats: esp_alloc::HeapStats = esp_alloc::HEAP.stats();
@@ -159,9 +159,23 @@ pub fn graphical_display(
         },
     )?;
 
-    draw_today_high_low_wind(
+    draw_today_high_low(
         *weather_data.daily.temperature_2m_max.get(0).unwrap(),
         *weather_data.daily.temperature_2m_min.get(0).unwrap(),
+        &weather_data
+            .daily_units
+            .temperature_2m_max
+            .chars()
+            .last()
+            .unwrap(),
+        &mut display,
+    )
+    .map_err(|_| {
+        log::error!("Failed to draw today weather view to display buffer");
+        AppError::DisplayError
+    })?;
+
+    draw_today_wind(
         *weather_data.daily.wind_speed_10m_max.get(0).unwrap(),
         *weather_data
             .daily

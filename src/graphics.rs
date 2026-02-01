@@ -138,7 +138,7 @@ where
 
     // Draw the Latitute and Longitude
     let mut lat_long_buf: String<24> = String::new();
-    write!(&mut lat_long_buf, "({:.4},{:.4})", lat, long).unwrap();
+    write!(&mut lat_long_buf, "({:.4}, {:.4})", lat, long).unwrap();
 
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(8, 27), Size::new(296, 0));
@@ -154,9 +154,52 @@ where
     Ok(())
 }
 
-pub fn draw_today_high_low_wind<D>(
+pub fn draw_today_high_low<D>(
     high: f32,
     low: f32,
+    temp_unit: &char,
+    display: &mut D,
+) -> Result<(), AppError>
+where
+    D: DrawTarget<Color = Gray2> + OriginDimensions,
+    <D as DrawTarget>::Error: core::fmt::Debug,
+{
+    let textbox_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::FitToText)
+        .alignment(HorizontalAlignment::Left)
+        .paragraph_spacing(2)
+        .build();
+
+    let mut temp_buf: String<8> = String::new();
+
+    // Draw the low temperatures
+    temp_buf.clear();
+    write!(&mut temp_buf, "{:.0}{}", low, temp_unit).unwrap();
+    let bounds =
+        embedded_graphics::primitives::Rectangle::new(Point::new(100, 60), Size::new(80, 0));
+    let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
+    if let Err(e) = text_box.draw(display) {
+        log::error!("Failed to draw text to display buffer: {:?}", e);
+        return Err(AppError::DisplayError);
+    }
+    log::info!("low temp drawn successfully");
+
+    // Draw the high temperature
+    temp_buf.clear();
+    write!(&mut temp_buf, "{:.0}{}", high, temp_unit).unwrap();
+    let bounds =
+        embedded_graphics::primitives::Rectangle::new(Point::new(140, 60), Size::new(80, 0));
+    let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
+    if let Err(e) = text_box.draw(display) {
+        log::error!("Failed to draw low_temp to display buffer: {:?}", e);
+        return Err(AppError::DisplayError);
+    }
+    log::info!("high temp drawn successfully");
+
+    Ok(())
+}
+
+pub fn draw_today_wind<D>(
     wind_speed: f32,
     wind_dir: i32,
     wind_unit: &str,
@@ -173,7 +216,6 @@ where
         .build();
 
     let mut wind_buf: String<24> = String::new();
-    let mut temp_buf: String<8> = String::new();
 
     // Draw the wind speed + direction
     let wind_dir = wind_dir_text(wind_dir);
@@ -181,7 +223,7 @@ where
     write!(&mut wind_buf, "{}{} {}", wind_speed, wind_unit, wind_dir).unwrap();
 
     let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(90, 95), Size::new(80, 0));
+        embedded_graphics::primitives::Rectangle::new(Point::new(95, 90), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&wind_buf, bounds, *CHARACTER_STYLE, textbox_style);
     if let Err(e) = text_box.draw(display) {
         log::error!("Failed to draw windspeed to display buffer: {:?}", e);
@@ -189,30 +231,6 @@ where
     }
 
     log::info!("windspeed drawn successfully");
-
-    // Draw the low temperatures
-    temp_buf.clear();
-    write!(&mut temp_buf, "{:.1}", low).unwrap();
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(100, 60), Size::new(80, 0));
-    let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
-    log::info!("low temp drawn successfully");
-
-    // Draw the high temperature
-    temp_buf.clear();
-    write!(&mut temp_buf, "{:.1}", high).unwrap();
-    let bounds =
-        embedded_graphics::primitives::Rectangle::new(Point::new(140, 60), Size::new(80, 0));
-    let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(display) {
-        log::error!("Failed to draw low_temp to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
-    log::info!("high temp drawn successfully");
 
     Ok(())
 }
