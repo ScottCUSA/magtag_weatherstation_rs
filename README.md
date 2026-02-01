@@ -1,82 +1,175 @@
+# MagTag Weather Station
 
-# magtag_weatherstation
-
-Compact no_std Rust firmware that fetches weather data and renders it on an Adafruit MagTag e-paper device (ESP32‑S2, esp-hal ecosystem).
-
-The firmware:
-
-- Initializes the SSD1680 e-paper display over SPI
-- Brings up Wi‑Fi using `esp-radio` and `embassy-net`
-- Fetches weather data and renders it with `embedded-graphics`/`embedded-text`
-- Enters deep sleep to conserve battery between updates
-
-This project was heavily inspired by Adafruit's MagTag weather example:
-
-- https://learn.adafruit.com/magtag-weather
-- https://github.com/adafruit/Adafruit_Learning_System_Guides/blob/main/MagTag/MagTag_Weather/openmeteo/code.py
+A `no_std` Rust firmware for the 2025 revision of the [Adafruit MagTag](https://www.adafruit.com/product/4800) with the SSD1680 controller. It displays weather information on the e-paper display. Built with the `esp-hal` ecosystem for ESP32-S2, this project demonstrates async/await patterns with Embassy, network connectivity with `esp-radio`, and e-paper graphics rendering.
 
 ## Features
 
-- Graphical output (default): controlled by the `graphical` feature flag (used via `cfg(feature = "graphical")`). 
-- Text fallback: when graphical output is disabled the firmware renders a compact text summary.
+- **E-Paper Display**: Drives the SSD1680 2.9" grayscale e-paper display (296x128 pixels) over SPI
+- **WiFi Connectivity**: Connects to WiFi using `esp-radio` and `embassy-net` with async networking
+- **Weather Data**: Fetches weather forecasts from the [Open-Meteo API](https://open-meteo.com/)
+- **Graphical UI**: Renders weather data with icons, text, and formatting using `embedded-graphics` and `embedded-text`
+- **Low Power**: Enters deep sleep between updates to conserve battery (24-hour update cycle by default)
+- **Error Handling**: Displays error messages on the e-paper screen when issues occur
+- **No Standard Library**: Runs entirely in `no_std` environment with custom allocator
 
-## Prerequisites
+## Hardware Requirements
 
-- Rust with the Espressif toolchain for Xtensa (see esp-rs getting started):
-	https://docs.espressif.com/projects/rust/book/getting-started/toolchain.html
-- A flasher tool for the xtensa-esp32s2 target (e.g. `espflash`).
-- The project reads Wi‑Fi credentials at compile time via `env!` in `src/network.rs`; set `SSID` and `PASSWORD` when building if your configuration requires it.
-- Make necessary changes in the config.rs file.
+- [Adafruit MagTag](https://www.adafruit.com/product/4800) - 2025 Edition with SSD1680 (ESP32-S2 based e-paper display) 
+- USB cable for programming and power
+- Optional: USB-to-serial adapter for debugging (see Serial Logging section)
 
+## Software Prerequisites
 
-## Project layout
+1. **Rust Toolchain**: Install Rust with the Espressif Xtensa toolchain
+   - Follow the [esp-rs Getting Started guide](https://docs.esp-rs.org/book/installation/index.html)
+   - Requires the `xtensa-esp32s2-none-elf` target
 
-- `src/bin/main.rs` — application entry point: hardware init, network stack, and high-level flow
-- `src/lib.rs` — crate exports and shared types
-- `src/config.rs` — compile-time configuration constants
-- `src/error.rs` — application error types
-- `src/network.rs` — Wi‑Fi and networking helpers
-- `src/time.rs` — date/time helpers and formatters
-- `src/sleep.rs` — deep sleep helper
-- `src/weather/` — weather subsystem
-	- `src/weather/mod.rs` — high-level weather helpers and `fetch_weather`/`draw_weather`
-	- `src/weather/api.rs` — HTTP request builder and fetch helper
-	- `src/weather/http.rs` — minimal HTTP client helpers used by `api.rs`
-	- `src/weather/model.rs` — serde models for the Open-Meteo API (uses `heapless::String`)
-	- `src/weather/display.rs` — textual & graphical drawing glue for weather data
-	- `src/weather/graphics.rs` — bitmap/icon drawing helpers (graphical feature)
-- `resources/` — bitmap images and compiled raw image assets
-- `scripts/` — helper scripts used to generate raw image assets
+2. **Flashing Tool**: Install `espflash`
+   ```bash
+   cargo install espflash
+   ```
 
-## Build
+3. **Environment Variables**: Set WiFi credentials as environment variables
+   ```bash
+   export SSID="YourNetworkName"
+   export PASSWORD="YourNetworkPassword"
+   ```
 
-Build the release firmware:
+## Configuration
+
+Edit [src/config.rs](src/config.rs) to customize:
+
+- `OPENMETEO_LATITUDE` / `OPENMETEO_LONGITUDE` — Your location coordinates
+- `OPENMETEO_TIMEZONE` — Your timezone (e.g., "America/Denver")
+- `TEMPERATURE_UNIT` — "fahrenheit" or "celsius"
+- `WIND_SPEED_UNIT` — "mph" or "kmh"
+
+WiFi credentials are read from environment variables at compile time:
+- `WIFI_SSID` from `$SSID`
+- `WIFI_PASSWORD` from `$PASSWORD`
+
+## Project Structure
+
+```
+src/
+├── bin/
+|   ├── tasks/
+|   |   ├── display.rs   # Display embassy tasks
+|   |   ├── network.rs   # Network embasy tasks
+|   |   ├── mod.rs       # tasks module exports
+|   |   └── weather.rs   # Weather embassy tasks
+│   └── main.rs          # Application entry point and main loop
+├── config.rs            # Configuration constants (WiFi, location, units)
+├── display.rs           # E-paper display initialization and rendering
+├── error.rs             # Application error types
+├── graphics.rs          # Drawing helpers and text rendering
+├── http.rs              # HTTP client for API requests
+├── lib.rs               # Library root and module exports
+├── network.rs           # WiFi and network stack setup
+├── sleep.rs             # Deep sleep functionality
+├── time.rs              # Date/time formatting utilities
+└── weather/
+    ├── api.rs           # Open-Meteo API client
+    ├── mod.rs           # Weather module exports
+    ├── model.rs         # Serde data models for API responses
+    └── ui.rs            # Weather UI layout and rendering
+
+resources/               # Image assets (bitmaps and raw format)
+scripts/                 # Python scripts to convert images to raw format
+```
+
+## Building
 
 ```bash
-# build with default features
+# Build release firmware (optimized for size and speed)
 cargo build --release
 
-# build text-only firmware (no graphical feature)
-cargo build --release --no-default-features
+# Build debug firmware (faster compilation, larger binary)
+cargo build
 ```
+
+The project uses LTO and size optimization (`opt-level = 's'`) for release builds.
 
 ## Flashing
 
-By default this project uses the `espflash` runner. From the repo root:
+The project is configured to use `espflash` as the default runner:
 
 ```bash
-# cargo will build the firmware and call espflash to flash the firmware
+# Build and flash in one command
 cargo run --release
+
+# Or flash a pre-built binary
+espflash flash --monitor --chip esp32s2 target/xtensa-esp32s2-none-elf/release/magtag_weatherstation
 ```
 
-## Logs / Serial
+## Runtime Behavior
 
-Firmware emits logs via the `log` facade over serial. To follow runtime output, open a serial terminal at 115200 baud (or the configured baud rate).
-Important Note: The `log` facade does NOT support USB serial. To monitor serial output, you will need to connect a USB-serial device to the UART RX/TX pinouts on the back of the MagTag.
+1. **Startup**: Initializes peripherals, display, and WiFi
+2. **Network**: Connects to WiFi and obtains IP via DHCP
+3. **Fetch**: Retrieves weather data from Open-Meteo API
+4. **Display**: Renders weather information on e-paper screen
+5. **Sleep**: Enters deep sleep for 24 hours (or 5 minutes on error)
+6. **Repeat**: Wakes up and repeats the cycle
 
-## Contributions
+## Serial Logging
 
-Contributions are welcome. Please keep changes focused to features or fixes and avoid altering the hardware assumptions unless explicitly discussed.
+The firmware outputs log messages via UART at 115200 baud using the `log` facade and `esp-println`.
+
+**Important**: The MagTag's USB port does **not** expose serial output. To view logs, you must:
+
+1. Connect a USB-to-serial adapter to the UART pins on the back of the MagTag
+2. Open a serial terminal at 115200 baud
+3. Logs are controlled by the `ESP_LOG` environment variable (set in `.cargo/config.toml`)
+
+## Dependencies
+
+Key dependencies include:
+
+- **esp-hal** (1.0.0) — Hardware abstraction layer for ESP32-S2
+- **esp-rtos** (0.2.0) — RTOS integration with Embassy executor
+- **esp-radio** (0.17.0) — WiFi radio driver
+- **embassy-net** — Async TCP/IP networking stack
+- **ssd1680** — E-paper display driver (custom fork)
+- **embedded-graphics** — 2D graphics library
+- **serde** / **serde-json-core** — JSON parsing in `no_std`
+- **heapless** — Stack-allocated collections
+
+## Heap Configuration
+
+The firmware uses a custom heap allocator with 64KB allocated from reclaimed RAM. This is sufficient for network buffers, HTTP responses, and display rendering.
+
+## Troubleshooting
+
+### Build Errors
+
+- Ensure `SSID` and `PASSWORD` environment variables are set
+- Verify Xtensa Rust toolchain is installed: `rustup target list | grep xtensa`
+- Check that `espflash` is in your PATH: `espflash --version`
+
+### Network Issues
+
+- Verify WiFi credentials in environment variables
+- Check that your router supports 2.4GHz (ESP32-S2 doesn't support 5GHz)
+- Monitor serial output to see connection status
+
+### Display Issues
+
+- Ensure SPI pins are correctly connected
+- Check that the display driver is compatible with your MagTag hardware revision
+- Look for error messages on the display itself
+
+## Inspiration
+
+This project was inspired by Adafruit's [MagTag Weather Example](https://learn.adafruit.com/magtag-weather) and demonstrates how to build similar functionality in pure Rust with `no_std`.
+
+## Contributing
+
+Contributions are welcome! Please:
+
+- Keep changes focused on specific features or fixes
+- Maintain `no_std` compatibility
+- Test on actual MagTag hardware when possible
+- Follow existing code style and patterns
 
 ## License
 

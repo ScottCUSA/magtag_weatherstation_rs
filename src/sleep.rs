@@ -12,7 +12,7 @@ use log::info;
 /// This function does not return - the device will reset when it wakes up.
 /// If you first boot at 6 AM and sleep for 24 hours, the device will wake
 /// at approximately 6 AM the next day.
-pub fn enter_deep_sleep_secs(mut rtc: Rtc, sleep_duration_secs: u64) -> ! {
+pub fn enter_deep_sleep_secs(rtc: &'static mut Rtc, sleep_duration_secs: u64) -> ! {
     info!("Entering deep sleep for {sleep_duration_secs} secs");
 
     // Configure timer wakeup source

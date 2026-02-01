@@ -16,7 +16,11 @@ use crate::{
 
 pub fn display_weather(
     weather_data: OpenMeteoResponse,
-    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    spi_device: &'static mut ExclusiveDevice<
+        Spi<'static, esp_hal::Blocking>,
+        Output<'static>,
+        Delay,
+    >,
     busy: Input<'static>,
     dc: Output<'static>,
     rst: Output<'static>,
@@ -35,7 +39,11 @@ pub fn display_weather(
 
 pub fn display_text(
     text: &str,
-    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    spi_device: &'static mut ExclusiveDevice<
+        Spi<'static, esp_hal::Blocking>,
+        Output<'static>,
+        Delay,
+    >,
     busy: Input<'static>,
     dc: Output<'static>,
     rst: Output<'static>,
@@ -49,7 +57,11 @@ pub fn display_text(
 /// Show an error message on the display.
 pub fn display_error_text(
     msg: &str,
-    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    spi_device: &'static mut ExclusiveDevice<
+        Spi<'static, esp_hal::Blocking>,
+        Output<'static>,
+        Delay,
+    >,
     busy: Input<'static>,
     dc: Output<'static>,
     rst: Output<'static>,
@@ -60,7 +72,11 @@ pub fn display_error_text(
 /// Show an `AppError` message on the display.
 pub fn display_app_error(
     err: &AppError,
-    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    spi_device: &'static mut ExclusiveDevice<
+        Spi<'static, esp_hal::Blocking>,
+        Output<'static>,
+        Delay,
+    >,
     busy: Input<'static>,
     dc: Output<'static>,
     rst: Output<'static>,
@@ -70,7 +86,11 @@ pub fn display_app_error(
 
 fn display_buffer(
     buffer: &Display2in9Gray2,
-    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    spi_device: &'static mut ExclusiveDevice<
+        Spi<'static, esp_hal::Blocking>,
+        Output<'static>,
+        Delay,
+    >,
     busy: Input<'static>,
     dc: Output<'static>,
     rst: Output<'static>,

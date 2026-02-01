@@ -8,7 +8,6 @@ pub mod display;
 pub mod error;
 pub mod graphics;
 pub mod http;
-pub mod network;
 pub mod sleep;
 pub mod time;
 pub mod weather;

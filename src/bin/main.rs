@@ -3,7 +3,9 @@
 
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
-use embassy_time::{Duration, Instant, Timer, with_deadline};
+use embassy_sync::channel::Channel;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
+use embassy_time::{Duration, Timer};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use esp_backtrace as _;
 use esp_hal::{
@@ -20,11 +22,10 @@ use esp_radio::Controller;
 use heapless::format;
 use log::info;
 use magtag_weatherstation::{
-    display::{display_app_error, display_error_text, display_weather},
-    network::{connection, net_task},
-    sleep::enter_deep_sleep_secs,
-    weather::fetch_weather,
+    display::display_error_text, sleep::enter_deep_sleep_secs, weather::model::OpenMeteoResponse,
 };
+
+mod tasks;
 
 const SLEEP_ON_ERROR_SECS: u64 = 60 * 5;
 const SLEEP_ON_SUCCESS_SECS: u64 = 60 * 60 * 24;
@@ -42,6 +43,11 @@ macro_rules! mk_static {
     }};
 }
 
+pub static WEATHER_CHANNEL: Channel<CriticalSectionRawMutex, OpenMeteoResponse, 1> = Channel::new(); // Channel used to deliver weather data to the display task
+pub static NETWORK_READY: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+pub static NETWORK_ERROR: Channel<CriticalSectionRawMutex, heapless::String<128>, 1> =
+    Channel::new();
+
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
     // Initialize logger
@@ -53,7 +59,7 @@ async fn main(spawner: Spawner) -> ! {
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
 
     // Initialize RTC for deep sleep
-    let rtc = Rtc::new(peripherals.LPWR);
+    let rtc = mk_static!(Rtc<'static>, Rtc::new(peripherals.LPWR));
 
     // Iniitialize SPI device and control pins for display
     let sclk = peripherals.GPIO36;
@@ -73,6 +79,7 @@ async fn main(spawner: Spawner) -> ! {
     let rst = Output::new(peripherals.GPIO6, Level::Low, OutputConfig::default());
     let dc = Output::new(peripherals.GPIO7, Level::High, OutputConfig::default());
     let cs = Output::new(peripherals.GPIO8, Level::High, OutputConfig::default());
+
     let spi_device = mk_static!(
         ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
         match ExclusiveDevice::new(spi, cs, Delay::new()) {
@@ -127,68 +134,25 @@ async fn main(spawner: Spawner) -> ! {
     );
 
     // Spawn network tasks
-    spawner.spawn(connection(controller)).ok();
-    spawner.spawn(net_task(runner)).ok();
+    spawner.spawn(tasks::network::connection(controller)).ok();
+    spawner.spawn(tasks::network::net_task(runner)).ok();
+    spawner
+        .spawn(tasks::network::network_validator_task(stack))
+        .ok();
 
-    // Wait for link up (with timeout)
-    if with_deadline(Instant::now() + Duration::from_secs(10), async {
-        loop {
-            if stack.is_link_up() {
-                break;
-            }
-            Timer::after(Duration::from_millis(500)).await;
-        }
-    })
-    .await
-    .is_err()
-    {
-        log::error!("Timed out waiting for link up");
-        display_error_text("Timed out waiting for link up", spi_device, busy, dc, rst);
-        enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
-    }
+    // Spawn the weather fetcher
+    spawner
+        .spawn(tasks::weather::weather_fetcher_task(stack))
+        .ok();
 
-    // Wait for IP address (with timeout)
-    if with_deadline(Instant::now() + Duration::from_secs(20), async {
-        loop {
-            if let Some(config) = stack.config_v4() {
-                info!("Got IP: {}", config.address);
-                break;
-            }
-            Timer::after(Duration::from_millis(500)).await;
-        }
-    })
-    .await
-    .is_err()
-    {
-        log::error!("Timed out waiting for IP address");
-        display_error_text(
-            "Timed out waiting for IP address",
-            spi_device,
-            busy,
-            dc,
-            rst,
-        );
-        enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
-    }
+    // Spawn the display task
+    spawner
+        .spawn(tasks::display::display_task(spi_device, busy, dc, rst, rtc))
+        .ok();
 
-    let weather_data = match fetch_weather(stack).await {
-        Ok(weather_data) => weather_data,
-        Err(e) => {
-            log::error!("Failed to fetch weather, sleeping to retry{:?}", e);
-            display_app_error(&e, spi_device, busy, dc, rst);
-            enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
-        }
-    };
-
-    // Fetch and display weather data
-    match display_weather(weather_data, spi_device, busy, dc, rst) {
-        Ok(_) => {
-            log::info!("Weather display successful, sleeping for 24 hours");
-            enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS);
-        }
-        Err(e) => {
-            log::error!("Displaying weather failed, sleeping to retry {:?}", e);
-            enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
-        }
+    loop {
+        // Main loop can now handle low-priority background tasks
+        // or just yield to the executor
+        Timer::after(Duration::from_secs(60)).await;
     }
 }
