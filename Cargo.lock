@@ -1185,7 +1185,6 @@ dependencies = [
  "ssd1680",
  "static_cell",
  "time",
- "tinybmp",
 ]
 
 [[package]]
@@ -1668,15 +1667,6 @@ name = "time-core"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7694e1cfe791f8d31026952abf09c69ca6f6fa4e1a1229e18988f06a04a12dca"
-
-[[package]]
-name = "tinybmp"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acb540c3e6f049f914d9c3eaf86ca415e264cf42d2b25bb5c24241af1a1e3aea"
-dependencies = [
- "embedded-graphics",
-]
 
 [[package]]
 name = "toml_datetime"
