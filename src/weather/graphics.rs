@@ -42,41 +42,6 @@ static WEATHER_ICONS_70PX: Lazy<ImageRaw<'static, Gray2>> = Lazy::new(|| {
         210,
     )
 });
-// TODO: consider moving to ssd1680 library
-/// Adapter to convert BinaryColor drawings to Gray2
-struct BinaryToGray2Adapter<'a, T>(&'a mut T);
-
-impl<'a, T> DrawTarget for BinaryToGray2Adapter<'a, T>
-where
-    T: DrawTarget<Color = Gray2> + OriginDimensions,
-{
-    type Color = BinaryColor;
-    type Error = T::Error;
-
-    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = Pixel<Self::Color>>,
-    {
-        self.0
-            .draw_iter(pixels.into_iter().map(|Pixel(point, color)| {
-                let gray2_color = if color.is_off() {
-                    Gray2::BLACK
-                } else {
-                    Gray2::WHITE
-                };
-                Pixel(point, gray2_color)
-            }))
-    }
-}
-
-impl<'a, T> OriginDimensions for BinaryToGray2Adapter<'a, T>
-where
-    T: OriginDimensions,
-{
-    fn size(&self) -> Size {
-        self.0.size()
-    }
-}
 
 /// Draw the background image onto the buffer
 pub fn draw_background_image<D>(buffer: &mut D) -> Result<(), AppError>
@@ -100,21 +65,10 @@ where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
-
     // Draw Today's Date
     // need to convert the ISO 8601 time stamp to a nice string
     let date = format_date(date).unwrap();
-    let bounds = Rectangle::new(Point::new(8, 16), Size::new(296, 0));
-    let text_box = TextBox::with_textbox_style(&date, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        AppError::DisplayError
-    })?;
+    draw_text(&date, 8, 16, 296, 0, buffer)?;
 
     log::info!("Today's date drawn successfully");
     Ok(())
@@ -126,23 +80,10 @@ where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
-
     // Draw the Latitute and Longitude
     let mut lat_long_buf: String<24> = String::new();
     write!(&mut lat_long_buf, "({:.4}, {:.4})", lat, long).unwrap();
-
-    let bounds = Rectangle::new(Point::new(8, 27), Size::new(296, 0));
-    let text_box =
-        TextBox::with_textbox_style(&lat_long_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        AppError::DisplayError
-    })?;
+    draw_text(&lat_long_buf, 8, 27, 296, 0, buffer)?;
 
     log::info!("lat, long drawn successfully");
     Ok(())
@@ -158,34 +99,18 @@ where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
-
     let mut temp_buf: String<8> = String::new();
 
     // Draw the low temperatures
     temp_buf.clear();
     write!(&mut temp_buf, "{:.0}{}", low, temp_unit).unwrap();
-    let bounds = Rectangle::new(Point::new(100, 60), Size::new(80, 0));
-    let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw low_temp to display buffer: {:?}", e);
-        AppError::DisplayError
-    })?;
+    draw_text(&temp_buf, 100, 60, 80, 0, buffer)?;
     log::info!("low temp drawn successfully");
 
     // Draw the high temperature
     temp_buf.clear();
     write!(&mut temp_buf, "{:.0}{}", high, temp_unit).unwrap();
-    let bounds = Rectangle::new(Point::new(140, 60), Size::new(80, 0));
-    let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw high temp to display buffer: {:?}", e);
-        AppError::DisplayError
-    })?;
+    draw_text(&temp_buf, 140, 60, 80, 0, buffer)?;
     log::info!("high temp drawn successfully");
 
     Ok(())
@@ -201,26 +126,13 @@ where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
-
     let mut wind_buf: String<24> = String::new();
 
     // Draw the wind speed + direction
     let wind_dir = wind_dir_text(wind_dir);
     wind_buf.clear();
     write!(&mut wind_buf, "{}{} {}", wind_speed, wind_unit, wind_dir).unwrap();
-
-    let bounds = Rectangle::new(Point::new(95, 90), Size::new(80, 0));
-    let text_box = TextBox::with_textbox_style(&wind_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw windspeed to display buffer: {:?}", e);
-        AppError::DisplayError
-    })?;
-
+    draw_text(&wind_buf, 95, 90, 80, 0, buffer)?;
     log::info!("windspeed drawn successfully");
 
     Ok(())
@@ -232,10 +144,7 @@ where
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
     let icon = weather_code_to_icon_index(weather_code);
-    draw_weather_icon(icon, Point::new(6, 40), 70, buffer).map_err(|_| {
-        log::error!("Failed to draw image to display buffer");
-        AppError::DisplayError
-    })?;
+    draw_weather_icon(icon, Point::new(6, 40), 70, buffer)?;
     log::info!("today weather icon drawn successfully");
     Ok(())
 }
@@ -249,29 +158,14 @@ where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
     // Draw sunrise
     let time = get_iso_8601_hh_mm(sunrise).unwrap();
-    let bounds = Rectangle::new(Point::new(30, 113), Size::new(296, 0));
-    let text_box = TextBox::with_textbox_style(time, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        AppError::DisplayError
-    })?;
+    draw_text(time, 30, 113, 296, 0, buffer)?;
     log::info!("sunrise drawn successfully");
 
     // Draw sunset
     let time = get_iso_8601_hh_mm(sunset).unwrap();
-    let bounds = Rectangle::new(Point::new(115, 113), Size::new(296, 0));
-    let text_box = TextBox::with_textbox_style(time, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        AppError::DisplayError
-    })?;
+    draw_text(time, 115, 113, 296, 0, buffer)?;
     log::info!("sunset drawn successfully");
     Ok(())
 }
@@ -285,12 +179,6 @@ where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
-
     let days = weather_data.daily.time.len();
     let temp_unit = &weather_data
         .daily_units
@@ -299,13 +187,10 @@ where
         .last()
         .unwrap();
 
-    let mut min_buf: String<8> = String::new();
-    let mut max_buf: String<8> = String::new();
+    let mut temp_buf: String<8> = String::new();
 
     // Draw the day of week, weather icon, the min and max temp for each future day
     for i in 1..days {
-        min_buf.clear();
-        max_buf.clear();
         let start_point = Point::new(191, 15 + ((i as i32 - 1) * 18));
 
         // day of week
@@ -314,52 +199,32 @@ where
         let m = date[5..7].parse().unwrap();
         let d = date[8..10].parse().unwrap();
         let dow = day_of_week_sakamoto(y, m, d);
-
-        let bounds = Rectangle::new(start_point + Point::new(0, 5), Size::new(20, 0));
-        let text_box = TextBox::with_textbox_style(dow, bounds, *CHARACTER_STYLE, textbox_style);
-        text_box.draw(buffer).map_err(|e| {
-            log::error!("Failed to draw text to display buffer: {:?}", e);
-            AppError::DisplayError
-        })?;
+        draw_text(dow, 0, 5, 20, 0, buffer)?;
 
         // weather icon
         let icon = weather_code_to_icon_index(*weather_data.daily.weather_code.get(i).unwrap());
-        draw_weather_icon(icon, start_point + Point::new(20, 0), 20, buffer).map_err(|_| {
-            log::error!("Failed to draw image to display buffer");
-            AppError::DisplayError
-        })?;
+        draw_weather_icon(icon, start_point + Point::new(20, 0), 20, buffer)?;
 
         // minimum temperature
+        temp_buf.clear();
         write!(
-            &mut min_buf,
+            &mut temp_buf,
             "{:.0}{}",
             weather_data.daily.temperature_2m_min[i], temp_unit
         )
         .unwrap();
-
-        let bounds = Rectangle::new(start_point + Point::new(45, 5), Size::new(30, 0));
-        let text_box =
-            TextBox::with_textbox_style(&min_buf, bounds, *CHARACTER_STYLE, textbox_style);
-        text_box.draw(buffer).map_err(|e| {
-            log::error!("Failed to draw text to display buffer: {:?}", e);
-            AppError::DisplayError
-        })?;
+        draw_text(&temp_buf, 45, 5, 30, 6, buffer)?;
 
         // maximum temperature
+        temp_buf.clear();
         write!(
-            &mut max_buf,
+            &mut temp_buf,
             "{:.0}{}",
             weather_data.daily.temperature_2m_max[i], temp_unit
         )
         .unwrap();
+        draw_text(&temp_buf, 75, 5, 30, 0, buffer)?;
 
-        let bounds = Rectangle::new(start_point + Point::new(75, 5), Size::new(30, 0));
-        let text_box =
-            TextBox::with_textbox_style(&max_buf, bounds, *CHARACTER_STYLE, textbox_style);
-        text_box.draw(buffer).map_err(|e| {
-            log::error!("Failed to draw text to display buffer: {:?}", e);
-            AppError::DisplayError
-        })?;
         log::info!("future day {} drawn successfully", i);
     }
     Ok(())
@@ -377,9 +242,10 @@ pub fn draw_weather_icon<D>(
     position: Point,
     size: u32,
     buffer: &mut D,
-) -> Result<(), D::Error>
+) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2>,
+    <D as DrawTarget>::Error: core::fmt::Debug,
 {
     let (sprite_sheet, icon_size) = match size {
         20 => (&*WEATHER_ICONS_20PX, 20u32),
@@ -407,7 +273,38 @@ where
     );
     let sub_image = sprite_sheet.sub_image(&rect);
     log::trace!("{:?}", sub_image);
-    Image::new(&sub_image, position).draw(buffer)
+    Image::new(&sub_image, position).draw(buffer).map_err(|e| {
+        log::error!("Failed to draw weather icon to display buffer: {:?}", e);
+        AppError::DisplayError
+    })
+}
+
+pub fn draw_text<D>(
+    text: &str,
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+    buffer: &mut D,
+) -> Result<(), AppError>
+where
+    D: DrawTarget<Color = Gray2> + OriginDimensions,
+    <D as DrawTarget>::Error: core::fmt::Debug,
+{
+    let textbox_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::FitToText)
+        .alignment(HorizontalAlignment::Left)
+        .paragraph_spacing(2)
+        .build();
+
+    let bounds = Rectangle::new(Point::new(x, y), Size::new(w, h));
+    let text_box = TextBox::with_textbox_style(text, bounds, *CHARACTER_STYLE, textbox_style);
+    text_box.draw(buffer).map_err(|e| {
+        log::error!("Failed to draw text to display buffer: {:?}", e);
+        AppError::DisplayError
+    })?;
+
+    Ok(())
 }
 
 /// Map weather codes to icon indices in the sprite sheet (3x3 grid, row-major order)
@@ -456,5 +353,41 @@ fn wind_dir_text(direction: i32) -> &'static str {
         247..293 => "W",
         293..337 => "NW",
         _ => "N",
+    }
+}
+
+// TODO: consider moving to ssd1680 library
+/// Adapter to convert BinaryColor drawings to Gray2
+struct BinaryToGray2Adapter<'a, T>(&'a mut T);
+
+impl<'a, T> DrawTarget for BinaryToGray2Adapter<'a, T>
+where
+    T: DrawTarget<Color = Gray2> + OriginDimensions,
+{
+    type Color = BinaryColor;
+    type Error = T::Error;
+
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        self.0
+            .draw_iter(pixels.into_iter().map(|Pixel(point, color)| {
+                let gray2_color = if color.is_off() {
+                    Gray2::BLACK
+                } else {
+                    Gray2::WHITE
+                };
+                Pixel(point, gray2_color)
+            }))
+    }
+}
+
+impl<'a, T> OriginDimensions for BinaryToGray2Adapter<'a, T>
+where
+    T: OriginDimensions,
+{
+    fn size(&self) -> Size {
+        self.0.size()
     }
 }
