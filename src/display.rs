@@ -35,37 +35,6 @@ pub fn display_weather(
     display_buffer(&display, spi_device, busy, dc, rst)
 }
 
-pub fn display_buffer(
-    buffer: &Display2in9Gray2,
-    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
-    busy: Input<'static>,
-    dc: Output<'static>,
-    rst: Output<'static>,
-) -> Result<()> {
-    // Create display with SPI interface
-    let mut epd = ThinkInk2in9Gray2::new(spi_device, busy, dc, rst).map_err(|e| {
-        log::error!("Failed to create e-paper display: {:?}", e);
-        AppError::DisplayError
-    })?;
-
-    // Initialize the display
-    epd.begin(&mut Delay::new()).map_err(|e| {
-        log::error!("Failed to initialize e-paper display: {:?}", e);
-        AppError::DisplayError
-    })?;
-    log::info!("E-paper display initialized");
-
-    log::info!("Drawing to display");
-    // Transfer and display the buffer on the display
-    epd.update_gray2_and_display(buffer.high_buffer(), buffer.low_buffer(), &mut Delay::new())
-        .map_err(|e| {
-            log::error!("Failed to update e-paper display: {:?}", e);
-            AppError::DisplayError
-        })?;
-    log::info!("updated display successfully");
-    Ok(())
-}
-
 pub fn display_text(
     text: &str,
     spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
@@ -99,4 +68,35 @@ pub fn display_app_error(
     rst: Output<'static>,
 ) {
     display_error_text(&err.to_string(), spi_device, busy, dc, rst);
+}
+
+fn display_buffer(
+    buffer: &Display2in9Gray2,
+    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    busy: Input<'static>,
+    dc: Output<'static>,
+    rst: Output<'static>,
+) -> Result<()> {
+    // Create display with SPI interface
+    let mut epd = ThinkInk2in9Gray2::new(spi_device, busy, dc, rst).map_err(|e| {
+        log::error!("Failed to create e-paper display: {:?}", e);
+        AppError::DisplayError
+    })?;
+
+    // Initialize the display
+    epd.begin(&mut Delay::new()).map_err(|e| {
+        log::error!("Failed to initialize e-paper display: {:?}", e);
+        AppError::DisplayError
+    })?;
+    log::info!("E-paper display initialized");
+
+    log::info!("Drawing to display");
+    // Transfer and display the buffer on the display
+    epd.update_gray2_and_display(buffer.high_buffer(), buffer.low_buffer(), &mut Delay::new())
+        .map_err(|e| {
+            log::error!("Failed to update e-paper display: {:?}", e);
+            AppError::DisplayError
+        })?;
+    log::info!("updated display successfully");
+    Ok(())
 }
