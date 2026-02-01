@@ -1,3 +1,4 @@
+
 # magtag_weatherstation
 
 Compact no_std Rust firmware that fetches weather data and renders it on an Adafruit MagTag e-paper device (ESP32‑S2, esp-hal ecosystem).
@@ -16,44 +17,52 @@ This project was heavily inspired by Adafruit's MagTag weather example:
 
 ## Features
 
-- **Graphical output** (enabled by default): Displays weather information using bitmap graphics from `resources/weather_bg.bmp`. This can be disabled by building with `--no-default-features`.
-- Text-based fallback: When graphical output is disabled, weather data is rendered as text.
+- Graphical output (default): controlled by the `graphical` feature flag (used via `cfg(feature = "graphical")`). 
+- Text fallback: when graphical output is disabled the firmware renders a compact text summary.
 
 ## Prerequisites
 
 - Rust with the Espressif toolchain for Xtensa (see esp-rs getting started):
 	https://docs.espressif.com/projects/rust/book/getting-started/toolchain.html
-- A flasher tool for the xtensa-esp32s2 target: 
-	- `espflash`
-    
-- To build the project and connect to wifi, you need to set the environment variables SSID, and PASSWORD. The project uses the env! macro to set these static values at compile time in the src/network.rs file.
+- A flasher tool for the xtensa-esp32s2 target (e.g. `espflash`).
+- The project reads Wi‑Fi credentials at compile time via `env!` in `src/network.rs`; set `SSID` and `PASSWORD` when building if your configuration requires it.
+- Make necessary changes in the config.rs file.
 
-## Notable dependencies
 
-All dependencies are declared in `Cargo.toml`. Highlights:
+## Project layout
 
-- `esp-hal`, `esp-rtos`, `esp-radio` — ESP32‑S2 HAL and runtime
-- `embassy-net`, `embassy-executor` — async network stack and executor
-- `ssd1680` — SSD1680 e-paper driver for Adafruit MagTag ePaper display (EPD) (git dependency)
-- `embedded-graphics`, `embedded-text` — drawing and text layout
-- `tinybmp` — BMP image parsing for graphical weather display
+- `src/bin/main.rs` — application entry point: hardware init, network stack, and high-level flow
+- `src/lib.rs` — crate exports and shared types
+- `src/config.rs` — compile-time configuration constants
+- `src/error.rs` — application error types
+- `src/network.rs` — Wi‑Fi and networking helpers
+- `src/time.rs` — date/time helpers and formatters
+- `src/sleep.rs` — deep sleep helper
+- `src/weather/` — weather subsystem
+	- `src/weather/mod.rs` — high-level weather helpers and `fetch_weather`/`draw_weather`
+	- `src/weather/api.rs` — HTTP request builder and fetch helper
+	- `src/weather/http.rs` — minimal HTTP client helpers used by `api.rs`
+	- `src/weather/model.rs` — serde models for the Open-Meteo API (uses `heapless::String`)
+	- `src/weather/display.rs` — textual & graphical drawing glue for weather data
+	- `src/weather/graphics.rs` — bitmap/icon drawing helpers (graphical feature)
+- `resources/` — bitmap images and compiled raw image assets
+- `scripts/` — helper scripts used to generate raw image assets
 
 ## Build
 
-Build the release binary for the target from the repository root:
+Build the release firmware:
 
 ```bash
-# build optimized firmware with graphical output (default)
+# build with default features
 cargo build --release
 
-# build with text-only output (no graphics)
+# build text-only firmware (no graphical feature)
 cargo build --release --no-default-features
 ```
 
-
 ## Flashing
 
-By default this project is wired to use the espflash runner.
+By default this project uses the `espflash` runner. From the repo root:
 
 ```bash
 # cargo will build the firmware and call espflash to flash the firmware
@@ -63,22 +72,11 @@ cargo run --release
 ## Logs / Serial
 
 Firmware emits logs via the `log` facade over serial. To follow runtime output, open a serial terminal at 115200 baud (or the configured baud rate).
-**Important Note: This project does not setup a USB serial device on the esp32s2 to write serial output over USB. To monitor the serial output, you will need to connect a USB-serial device to the UART RX/TX pinouts on the back of the MagTag.**
+Important Note: The `log` facade does NOT support USB serial. To monitor serial output, you will need to connect a USB-serial device to the UART RX/TX pinouts on the back of the MagTag.
 
-## Project layout
+## Contributions
 
-- `src/bin/main.rs` — application entry point: hardware init, network stack, and high-level flow
-- `src/lib.rs` — crate exports and shared types
-- `src/display.rs` — display initialization and drawing helpers
-- `src/graphics.rs` — graphical display helpers (enabled with `graphical` feature)
-- `src/network.rs` — Wi‑Fi and networking helpers
-- `src/sleep.rs` — deep sleep helper
-- `src/weather/` — weather model, API client and parsing logic
-- `resources/` — bitmap images for graphical display
-
-## Contributing
-
-Contributions are welcome, but please do not change build targets or hardware assumptions.
+Contributions are welcome. Please keep changes focused to features or fixes and avoid altering the hardware assumptions unless explicitly discussed.
 
 ## License
 
