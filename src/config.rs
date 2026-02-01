@@ -1,10 +1,14 @@
-// Wifi constants
+// Network timeouts
+pub const NETWORK_LINK_TIMEOUT_SECS: u64 = 10;
+pub const NETWORK_IP_TIMEOUT_SECS: u64 = 20;
+
+// Wifi credentials
 pub const WIFI_SSID: &str = env!("SSID");
 pub const WIFI_PASSWORD: &str = env!("PASSWORD");
 
-// Weather constants
+// Open-Meteo API weather arguments
 pub const OPENMETEO_LATITUDE: &str = "39.868";
 pub const OPENMETEO_LONGITUDE: &str = "-104.9719";
 pub const OPENMETEO_TIMEZONE: &str = "America/Denver";
-pub const TEMPERATURE_UNIT: &str = "fahrenheit"; // fahrenheit or celsius
-pub const WIND_SPEED_UNIT: &str = "mph"; // mph, kmh
+pub const OPENMETEO_TEMP_UNIT: &str = "fahrenheit"; // fahrenheit or celsius
+pub const OPENMETEO_WIND_UNIT: &str = "mph"; // mph, kmh

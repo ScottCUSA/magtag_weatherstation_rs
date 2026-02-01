@@ -162,6 +162,66 @@ The firmware uses a custom heap allocator with 64KB allocated from reclaimed RAM
 
 This project was inspired by Adafruit's [MagTag Weather Example](https://learn.adafruit.com/magtag-weather) and demonstrates how to build similar functionality in pure Rust with `no_std`.
 
+## Architecture
+These diagrams are derived from `src/bin/main.rs` and the tasks in `src/bin/tasks/`.
+
+This diagram shows what `main` spawns during initialization (no runtime messaging).
+
+```mermaid
+sequenceDiagram
+   participant Main as `main` (bin/main.rs)
+   participant Executor as Embassy Executor / Spawner
+
+   Main->>Executor: spawner.spawn(network::wifi_task(controller))
+   Main->>Executor: spawner.spawn(network::net_runner_task(runner))
+   Main->>Executor: spawner.spawn(network::net_validator_task(stack))
+   Main->>Executor: spawner.spawn(weather::weather_fetcher_task(stack))
+   Main->>Executor: spawner.spawn(display::display_task(..., rtc))
+
+   Note over Main,Executor: After spawning, `main` yields to the executor loop
+```
+
+
+The diagram below shows the main tasks and channels and signals used to communicate between them.
+
+```mermaid
+sequenceDiagram
+   participant NetValidator as `network::net_validator_task`
+   participant Weather as `weather::weather_fetcher_task`
+   participant Display as `display::display_task`
+   participant Sleep as `sleep::enter_deep_sleep_secs`
+   
+   NetValidator->>NetValidator: wait for link and IP
+   alt IP acquired
+      NetValidator->>Weather: signal `NETWORK_READY`
+   else  Link or IP timeout or failure
+      NetValidator->>Display: send `NETWORK_ERROR` (Channel<String>)
+   end
+
+   alt Fetch success
+      Weather->>Display: send `WEATHER_CHANNEL` (Channel<OpenMeteoResponse>)
+   else Fetch failure (after retries)
+      Weather->>Display: send `NETWORK_ERROR` (Channel<String>)
+   end
+
+   Display->>Display: select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive())
+   alt Received `NETWORK_ERROR`
+      Display->>Display: `display_error_text(...)`
+      Display->>Sleep: `enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS)`
+   else Received `WEATHER_CHANNEL` data
+      Display->>Display: `display_weather(...)`
+      Display->>Sleep: `enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS)`
+   end
+
+```
+
+**Legend**
+- `NETWORK_READY`: `Signal<()>` used by `net_validator_task` to notify `weather_fetcher_task`.
+- `WEATHER_CHANNEL`: `Channel<OpenMeteoResponse, 1>` used by `weather_fetcher_task` -> `display_task`.
+- `NETWORK_ERROR`: `Channel<heapless::String<128>, 1>` used to report link/IP/fetch errors to `display_task`.
+
+This diagram mirrors the code in `src/bin/main.rs` and the tasks in `src/bin/tasks/`.
+
 ## Contributing
 
 Contributions are welcome! Please:

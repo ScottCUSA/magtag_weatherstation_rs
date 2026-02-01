@@ -2,8 +2,8 @@ use core::fmt::Write as _;
 
 use crate::{
     config::{
-        OPENMETEO_LATITUDE, OPENMETEO_LONGITUDE, OPENMETEO_TIMEZONE, TEMPERATURE_UNIT,
-        WIND_SPEED_UNIT,
+        OPENMETEO_LATITUDE, OPENMETEO_LONGITUDE, OPENMETEO_TEMP_UNIT, OPENMETEO_TIMEZONE,
+        OPENMETEO_WIND_UNIT,
     },
     error::{AppError, Result},
     http::{extract_json_payload, http_get, url_encode_component},
@@ -25,8 +25,8 @@ pub async fn fetch_weather(stack: embassy_net::Stack<'static>) -> Result<OpenMet
         OPENMETEO_LATITUDE,
         OPENMETEO_LONGITUDE,
         OPENMETEO_TIMEZONE,
-        TEMPERATURE_UNIT,
-        WIND_SPEED_UNIT,
+        OPENMETEO_TEMP_UNIT,
+        OPENMETEO_WIND_UNIT,
     )
     .await
     .map_err(|e| {

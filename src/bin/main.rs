@@ -134,10 +134,10 @@ async fn main(spawner: Spawner) -> ! {
     );
 
     // Spawn network tasks
-    spawner.spawn(tasks::network::connection(controller)).ok();
-    spawner.spawn(tasks::network::net_task(runner)).ok();
+    spawner.spawn(tasks::network::wifi_task(controller)).ok();
+    spawner.spawn(tasks::network::net_runner_task(runner)).ok();
     spawner
-        .spawn(tasks::network::network_validator_task(stack))
+        .spawn(tasks::network::net_validator_task(stack))
         .ok();
 
     // Spawn the weather fetcher

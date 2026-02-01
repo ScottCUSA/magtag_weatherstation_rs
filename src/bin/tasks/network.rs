@@ -5,14 +5,20 @@ use esp_radio::wifi::{
 };
 use log::{error, info};
 
-use magtag_weatherstation::config::{WIFI_PASSWORD, WIFI_SSID};
+use magtag_weatherstation::config::{
+    NETWORK_IP_TIMEOUT_SECS, NETWORK_LINK_TIMEOUT_SECS, WIFI_PASSWORD, WIFI_SSID,
+};
 
 use crate::{NETWORK_ERROR, NETWORK_READY};
 use core::fmt::Write;
 use heapless::String;
 
+/// Manage the WiFi connection lifecycle.
+///
+/// Configures and starts the provided `WifiController`, attempts connection,
+/// and retries on failures or after disconnects.
 #[embassy_executor::task]
-pub async fn connection(mut controller: WifiController<'static>) {
+pub async fn wifi_task(mut controller: WifiController<'static>) {
     info!("Starting connection task");
     info!("Device capabilities {:?}", controller.capabilities());
     loop {
@@ -53,22 +59,32 @@ pub async fn connection(mut controller: WifiController<'static>) {
     }
 }
 
+/// Run the embassy-net network event runner.
+///
+/// Drives the network stack by running the provided `Runner` until completion.
 #[embassy_executor::task]
-pub async fn net_task(mut runner: Runner<'static, WifiDevice<'static>>) {
+pub async fn net_runner_task(mut runner: Runner<'static, WifiDevice<'static>>) {
     runner.run().await
 }
 
+/// Validate network readiness (link and IP assignment).
+///
+/// Waits for link up and IPv4 configuration with timeouts, signals
+/// `NETWORK_READY` when an IP is acquired or sends `NETWORK_ERROR` on failure.
 #[embassy_executor::task]
-pub async fn network_validator_task(stack: embassy_net::Stack<'static>) {
-    // Wait for Link (timeout ~10s)
-    if with_deadline(Instant::now() + Duration::from_secs(10), async {
-        loop {
-            if stack.is_link_up() {
-                break;
+pub async fn net_validator_task(stack: embassy_net::Stack<'static>) {
+    // Wait for Link (timeout configured)
+    if with_deadline(
+        Instant::now() + Duration::from_secs(NETWORK_LINK_TIMEOUT_SECS),
+        async {
+            loop {
+                if stack.is_link_up() {
+                    break;
+                }
+                Timer::after(Duration::from_millis(500)).await;
             }
-            Timer::after(Duration::from_millis(500)).await;
-        }
-    })
+        },
+    )
     .await
     .is_err()
     {
@@ -80,17 +96,20 @@ pub async fn network_validator_task(stack: embassy_net::Stack<'static>) {
         return;
     }
 
-    // Wait for IP (timeout ~20s)
-    if with_deadline(Instant::now() + Duration::from_secs(20), async {
-        loop {
-            if let Some(config) = stack.config_v4() {
-                log::info!("Network ready with IP: {}", config.address);
-                NETWORK_READY.signal(());
-                break;
+    // Wait for IP (timeout configured)
+    if with_deadline(
+        Instant::now() + Duration::from_secs(NETWORK_IP_TIMEOUT_SECS),
+        async {
+            loop {
+                if let Some(config) = stack.config_v4() {
+                    log::info!("Network ready with IP: {}", config.address);
+                    NETWORK_READY.signal(());
+                    break;
+                }
+                Timer::after(Duration::from_millis(500)).await;
             }
-            Timer::after(Duration::from_millis(500)).await;
-        }
-    })
+        },
+    )
     .await
     .is_err()
     {
