@@ -113,10 +113,10 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(8, 16), Size::new(296, 0));
     let text_box = TextBox::with_textbox_style(&date, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(buffer) {
+    text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        AppError::DisplayError
+    })?;
 
     log::info!("Today's date drawn successfully");
     Ok(())
@@ -143,10 +143,10 @@ where
 
     let text_box =
         TextBox::with_textbox_style(&lat_long_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(buffer) {
+    text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        AppError::DisplayError
+    })?;
 
     log::info!("lat, long drawn successfully");
     Ok(())
@@ -176,10 +176,10 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(100, 60), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(buffer) {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+    text_box.draw(buffer).map_err(|e| {
+        log::error!("Failed to draw low_temp to display buffer: {:?}", e);
+        AppError::DisplayError
+    })?;
     log::info!("low temp drawn successfully");
 
     // Draw the high temperature
@@ -188,10 +188,10 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(140, 60), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&temp_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(buffer) {
-        log::error!("Failed to draw low_temp to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+    text_box.draw(buffer).map_err(|e| {
+        log::error!("Failed to draw high temp to display buffer: {:?}", e);
+        AppError::DisplayError
+    })?;
     log::info!("high temp drawn successfully");
 
     Ok(())
@@ -223,10 +223,10 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(95, 90), Size::new(80, 0));
     let text_box = TextBox::with_textbox_style(&wind_buf, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(buffer) {
+    text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw windspeed to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        AppError::DisplayError
+    })?;
 
     log::info!("windspeed drawn successfully");
 
@@ -266,10 +266,10 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(30, 113), Size::new(296, 0));
     let text_box = TextBox::with_textbox_style(time, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(buffer) {
+    text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        AppError::DisplayError
+    })?;
     log::info!("sunrise drawn successfully");
 
     // Draw sunset
@@ -277,10 +277,10 @@ where
     let bounds =
         embedded_graphics::primitives::Rectangle::new(Point::new(115, 113), Size::new(296, 0));
     let text_box = TextBox::with_textbox_style(time, bounds, *CHARACTER_STYLE, textbox_style);
-    if let Err(e) = text_box.draw(buffer) {
+    text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        AppError::DisplayError
+    })?;
     log::info!("sunset drawn successfully");
     Ok(())
 }
@@ -329,10 +329,10 @@ where
             Size::new(20, 0),
         );
         let text_box = TextBox::with_textbox_style(dow, bounds, *CHARACTER_STYLE, textbox_style);
-        if let Err(e) = text_box.draw(buffer) {
+        text_box.draw(buffer).map_err(|e| {
             log::error!("Failed to draw text to display buffer: {:?}", e);
-            return Err(AppError::DisplayError);
-        }
+            AppError::DisplayError
+        })?;
 
         // weather icon
         let icon = weather_code_to_icon_index(*weather_data.daily.weather_code.get(i).unwrap());
@@ -355,10 +355,10 @@ where
         );
         let text_box =
             TextBox::with_textbox_style(&min_buf, bounds, *CHARACTER_STYLE, textbox_style);
-        if let Err(e) = text_box.draw(buffer) {
+        text_box.draw(buffer).map_err(|e| {
             log::error!("Failed to draw text to display buffer: {:?}", e);
-            return Err(AppError::DisplayError);
-        }
+            AppError::DisplayError
+        })?;
 
         // maximum temperature
         write!(
@@ -374,10 +374,10 @@ where
         );
         let text_box =
             TextBox::with_textbox_style(&max_buf, bounds, *CHARACTER_STYLE, textbox_style);
-        if let Err(e) = text_box.draw(buffer) {
+        text_box.draw(buffer).map_err(|e| {
             log::error!("Failed to draw text to display buffer: {:?}", e);
-            return Err(AppError::DisplayError);
-        }
+            AppError::DisplayError
+        })?;
         log::info!("future day {} drawn successfully", i);
     }
     Ok(())

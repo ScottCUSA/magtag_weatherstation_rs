@@ -38,21 +38,19 @@ pub fn text_display(
     rst: Output<'static>,
 ) -> Result<(), AppError> {
     log::info!("Show on display: \n{}", text);
+
     // Create display with SPI interface
-    let mut epd = match ThinkInk2in9Gray2::new(spi_device, busy, dc, rst) {
-        Ok(display) => display,
-        Err(e) => {
-            log::error!("Failed to create e-paper display: {:?}", e);
-            return Err(AppError::DisplayError);
-        }
-    };
-    let mut display_gray = Display2in9Gray2::new();
+    let mut epd = ThinkInk2in9Gray2::new(spi_device, busy, dc, rst).map_err(|e| {
+        log::error!("Failed to create e-paper display: {:?}", e);
+        AppError::DisplayError
+    })?;
+    let mut display = Display2in9Gray2::new();
 
     // Initialize the display
-    if let Err(e) = epd.begin(&mut Delay::new()) {
+    epd.begin(&mut Delay::new()).map_err(|e| {
         log::error!("Failed to initialize e-paper display: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        AppError::DisplayError
+    })?;
     log::info!("E-paper display initialized");
 
     let textbox_style = TextBoxStyleBuilder::new()
@@ -67,29 +65,30 @@ pub fn text_display(
 
     log::info!("Clearing display");
     // clear display first (fill white)
-    if let Err(e) = Rectangle::new(Point::new(0, 0), Size::new(296, 128))
+    Rectangle::new(Point::new(0, 0), Size::new(296, 128))
         .into_styled(PrimitiveStyle::with_fill(Gray2::WHITE))
-        .draw(&mut display_gray)
-    {
-        log::error!("Failed to clear display: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        .draw(&mut display)
+        .map_err(|e| {
+            log::error!("Failed to clear display: {:?}", e);
+            AppError::DisplayError
+        })?;
 
-    if let Err(e) = text_box.draw(&mut display_gray) {
+    text_box.draw(&mut display).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        AppError::DisplayError
+    })?;
 
     log::info!("Drawing text to display");
     // Transfer and display the buffer on the display
-    if let Err(e) = epd.update_gray2_and_display(
-        display_gray.high_buffer(),
-        display_gray.low_buffer(),
+    epd.update_gray2_and_display(
+        display.high_buffer(),
+        display.low_buffer(),
         &mut Delay::new(),
-    ) {
+    )
+    .map_err(|e| {
         log::error!("Failed to update e-paper display: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
+        AppError::DisplayError
+    })?;
     Ok(())
 }
 
@@ -112,53 +111,26 @@ pub fn graphical_display(
     log::info!("Drawing graphical display");
 
     // Create display with SPI interface
-    let mut epd = match ThinkInk2in9Gray2::new(spi_device, busy, dc, rst) {
-        Ok(display) => display,
-        Err(e) => {
-            log::error!("Failed to create e-paper display: {:?}", e);
-            return Err(AppError::DisplayError);
-        }
-    };
+    let mut epd = ThinkInk2in9Gray2::new(spi_device, busy, dc, rst).map_err(|e| {
+        log::error!("Failed to create e-paper display: {:?}", e);
+        AppError::DisplayError
+    })?;
     let mut display = Display2in9Gray2::new();
 
     // Initialize the display
-    if let Err(e) = epd.begin(&mut Delay::new()) {
+    epd.begin(&mut Delay::new()).map_err(|e| {
         log::error!("Failed to initialize e-paper display: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
-    log::info!("E-paper display initialized");
-
-    draw_background_image(&mut display).map_err(|_| {
-        log::error!("Failed to draw background image to display buffer");
         AppError::DisplayError
     })?;
+    log::info!("E-paper display initialized");
 
+    draw_background_image(&mut display)?;
     draw_today_weather_icon(
         *weather_data.daily.weather_code.first().unwrap(),
         &mut display,
-    )
-    .map_err(|_| {
-        log::error!("Failed to draw today weather view to display buffer");
-        AppError::DisplayError
-    })?;
-
-    draw_future_weather_view(&weather_data, &mut display).map_err(|_| {
-        log::error!("Failed to draw future weather view to display buffer");
-        AppError::DisplayError
-    })?;
-
-    draw_today_date(weather_data.daily.time.first().unwrap(), &mut display).map_err(|_| {
-        log::error!("Failed to draw today weather view to display buffer");
-        AppError::DisplayError
-    })?;
-
-    draw_today_lat_long(weather_data.latitude, weather_data.longitude, &mut display).map_err(
-        |_| {
-            log::error!("Failed to draw today weather view to display buffer");
-            AppError::DisplayError
-        },
     )?;
-
+    draw_today_date(weather_data.daily.time.first().unwrap(), &mut display)?;
+    draw_today_lat_long(weather_data.latitude, weather_data.longitude, &mut display)?;
     draw_today_high_low(
         *weather_data.daily.temperature_2m_max.first().unwrap(),
         *weather_data.daily.temperature_2m_min.first().unwrap(),
@@ -169,12 +141,7 @@ pub fn graphical_display(
             .last()
             .unwrap(),
         &mut display,
-    )
-    .map_err(|_| {
-        log::error!("Failed to draw today weather view to display buffer");
-        AppError::DisplayError
-    })?;
-
+    )?;
     draw_today_wind(
         *weather_data.daily.wind_speed_10m_max.first().unwrap(),
         *weather_data
@@ -184,35 +151,25 @@ pub fn graphical_display(
             .unwrap(),
         weather_data.daily_units.wind_speed_10m_max,
         &mut display,
-    )
-    .map_err(|_| {
-        log::error!("Failed to draw today weather view to display buffer");
-        AppError::DisplayError
-    })?;
-
+    )?;
     draw_today_sunrise_sunset(
         weather_data.daily.sunrise.first().unwrap(),
         weather_data.daily.sunset.first().unwrap(),
         &mut display,
-    )
-    .map_err(|_| {
-        log::error!("Failed to draw today weather view to display buffer");
-        AppError::DisplayError
-    })?;
+    )?;
+    draw_future_weather_view(&weather_data, &mut display)?;
 
     log::info!("displaying buffer");
     // Transfer and display the buffer on the display
-    if let Err(e) = epd.update_gray2_and_display(
+    epd.update_gray2_and_display(
         display.high_buffer(),
         display.low_buffer(),
         &mut Delay::new(),
-    ) {
+    )
+    .map_err(|e| {
         log::error!("Failed to update e-paper display: {:?}", e);
-        return Err(AppError::DisplayError);
-    }
-
-    let stats: esp_alloc::HeapStats = esp_alloc::HEAP.stats();
-    log::info!("{}", stats);
+        AppError::DisplayError
+    })?;
 
     log::info!("updated display successfully");
     Ok(())
