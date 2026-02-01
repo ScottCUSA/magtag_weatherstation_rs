@@ -48,6 +48,7 @@ log = "0.4.29"
 embedded-hal-bus = "0.3.0"
 static_cell = "2.1.1"
 time = { version = "0.3.46", default-features = false }
+thiserror = { version = "2.0.18", default-features = false }
 
 # display driver crate
 ssd1680 = { git = "https://github.com/ScottCUSA/ssd1680.git", branch = "main" }

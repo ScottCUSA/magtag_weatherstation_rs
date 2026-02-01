@@ -1,3 +1,4 @@
+use alloc::string::ToString;
 use embedded_hal_bus::spi::ExclusiveDevice;
 use esp_hal::{
     delay::Delay,
@@ -8,7 +9,7 @@ use ssd1680::displays::adafruit_thinkink_2in9::{Display2in9Gray2, ThinkInk2in9Gr
 use ssd1680::prelude::*;
 
 use crate::{
-    error::AppError,
+    error::{AppError, Result},
     weather::{
         graphics::{draw_text, draw_weather_station_view},
         model::OpenMeteoResponse,
@@ -21,7 +22,7 @@ pub fn display_weather(
     busy: Input<'static>,
     dc: Output<'static>,
     rst: Output<'static>,
-) -> Result<(), AppError> {
+) -> Result<()> {
     let mut display = Display2in9Gray2::new();
 
     log::info!("Drawing graphical display");
@@ -68,7 +69,7 @@ pub fn display_text(
     busy: Input<'static>,
     dc: Output<'static>,
     rst: Output<'static>,
-) -> Result<(), AppError> {
+) -> Result<()> {
     log::info!("Show on display: \n{}", text);
 
     // Create display with SPI interface
@@ -96,8 +97,8 @@ pub fn display_text(
     Ok(())
 }
 
-/// Show an `AppError` on the display.
-pub fn show_app_error(
+/// Show an error message on the display.
+pub fn display_error_text(
     msg: &str,
     spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
     busy: Input<'static>,
@@ -105,4 +106,15 @@ pub fn show_app_error(
     rst: Output<'static>,
 ) {
     let _ = display_text(msg, spi_device, busy, dc, rst);
+}
+
+/// Show an `AppError` message on the display.
+pub fn display_app_error(
+    err: &AppError,
+    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    busy: Input<'static>,
+    dc: Output<'static>,
+    rst: Output<'static>,
+) {
+    display_error_text(&err.to_string(), spi_device, busy, dc, rst);
 }

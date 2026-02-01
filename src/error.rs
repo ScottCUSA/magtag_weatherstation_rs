@@ -1,37 +1,40 @@
-use core::fmt::{Display, Write as _};
-use heapless::String;
+/// Crate-wide result alias using the unified `AppError`.
+pub type Result<T> = core::result::Result<T, AppError>;
 
 /// Unified application error type combining display and weather errors.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum AppError {
-    // Display errors
+    #[error("unable to update display")]
     DisplayError,
 
-    // Weather/network errors
+    #[error("unable to draw graphics to display buffer")]
+    GraphicsError,
+
+    #[error("DNS query failed")]
     DnsQueryFailed,
+
+    #[error("network connection failed")]
     ConnectionFailed,
+
+    #[error("HTTP request failed")]
     HttpRequestFailed,
+
+    #[error("socket read error")]
     SocketReadError,
+
+    #[error("API timeout error")]
     RequestTimeout,
+
+    #[error("JSON parse failed")]
     JsonParseFailed,
 
-    // Fallback for unknown errors
+    #[error("an unknown error occurred")]
     Other,
 }
 
-impl Display for AppError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let mut msg: String<64> = String::new();
-        match self {
-            AppError::DisplayError => write!(msg, "unable to update display"),
-            AppError::DnsQueryFailed => write!(msg, "DNS query failed"),
-            AppError::ConnectionFailed => write!(msg, "network connection failed"),
-            AppError::HttpRequestFailed => write!(msg, "HTTP request failed"),
-            AppError::SocketReadError => write!(msg, "socket read error"),
-            AppError::RequestTimeout => write!(msg, "API timeout error"),
-            AppError::JsonParseFailed => write!(msg, "JSON parse failed"),
-            AppError::Other => write!(msg, "an unknown error occurred"),
-        }?;
-        write!(f, "{}", msg)
+// Convert serde_json_core parse errors into our AppError so callers can `?` them
+impl From<serde_json_core::de::Error> for AppError {
+    fn from(_: serde_json_core::de::Error) -> Self {
+        AppError::JsonParseFailed
     }
 }

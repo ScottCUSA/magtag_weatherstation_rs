@@ -16,7 +16,7 @@ use heapless::String;
 use once_cell::sync::Lazy;
 
 use crate::{
-    error::AppError,
+    error::{AppError, Result},
     time::{format_date, get_iso_8601_hh_mm},
     weather::model::OpenMeteoResponse,
 };
@@ -51,10 +51,7 @@ static WEATHER_ICONS_70PX: Lazy<ImageRaw<'static, Gray2>> = Lazy::new(|| {
     )
 });
 
-pub fn draw_weather_station_view<D>(
-    weather_data: &OpenMeteoResponse,
-    buffer: &mut D,
-) -> Result<(), AppError>
+pub fn draw_weather_station_view<D>(weather_data: &OpenMeteoResponse, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -89,17 +86,10 @@ where
         weather_data.daily.sunset.first().unwrap(),
         buffer,
     )?;
-    draw_future_weather_view(&weather_data, buffer)
+    draw_future_weather_view(weather_data, buffer)
 }
 
-pub fn draw_text<D>(
-    text: &str,
-    x: i32,
-    y: i32,
-    w: u32,
-    h: u32,
-    buffer: &mut D,
-) -> Result<(), AppError>
+pub fn draw_text<D>(text: &str, x: i32, y: i32, w: u32, h: u32, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -114,14 +104,14 @@ where
     let text_box = TextBox::with_textbox_style(text, bounds, *CHARACTER_STYLE, textbox_style);
     text_box.draw(buffer).map_err(|e| {
         log::error!("Failed to draw text to display buffer: {:?}", e);
-        AppError::DisplayError
+        AppError::GraphicsError
     })?;
 
     Ok(())
 }
 
 /// Draw the background image onto the buffer
-fn draw_background_image<D>(buffer: &mut D) -> Result<(), AppError>
+fn draw_background_image<D>(buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
 {
@@ -129,7 +119,7 @@ where
     let image = Image::new(&*WEATHER_BG, Point::zero());
     image.draw(&mut BinaryToGray2Adapter(buffer)).map_err(|_| {
         log::error!("Failed to draw image to display buffer");
-        AppError::DisplayError
+        AppError::GraphicsError
     })?;
 
     log::info!("Background image drawn successfully");
@@ -137,7 +127,7 @@ where
 }
 
 /// Draw the today weather view onto the display buffer
-fn draw_today_date<D>(date: &str, buffer: &mut D) -> Result<(), AppError>
+fn draw_today_date<D>(date: &str, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -152,7 +142,7 @@ where
 }
 
 /// Draw the today weather view onto the display buffer
-fn draw_today_lat_long<D>(lat: f32, long: f32, buffer: &mut D) -> Result<(), AppError>
+fn draw_today_lat_long<D>(lat: f32, long: f32, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -166,12 +156,7 @@ where
     Ok(())
 }
 
-fn draw_today_high_low<D>(
-    high: f32,
-    low: f32,
-    temp_unit: &char,
-    buffer: &mut D,
-) -> Result<(), AppError>
+fn draw_today_high_low<D>(high: f32, low: f32, temp_unit: &char, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -193,12 +178,7 @@ where
     Ok(())
 }
 
-fn draw_today_wind<D>(
-    wind_speed: f32,
-    wind_dir: i32,
-    wind_unit: &str,
-    buffer: &mut D,
-) -> Result<(), AppError>
+fn draw_today_wind<D>(wind_speed: f32, wind_dir: i32, wind_unit: &str, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -215,7 +195,7 @@ where
     Ok(())
 }
 
-fn draw_today_weather_icon<D>(weather_code: i32, buffer: &mut D) -> Result<(), AppError>
+fn draw_today_weather_icon<D>(weather_code: i32, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -226,7 +206,7 @@ where
     Ok(())
 }
 
-fn draw_today_sunrise_sunset<D>(sunrise: &str, sunset: &str, buffer: &mut D) -> Result<(), AppError>
+fn draw_today_sunrise_sunset<D>(sunrise: &str, sunset: &str, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -244,10 +224,7 @@ where
 }
 
 /// Draw the future weather view onto the display buffer
-fn draw_future_weather_view<D>(
-    weather_data: &OpenMeteoResponse,
-    buffer: &mut D,
-) -> Result<(), AppError>
+fn draw_future_weather_view<D>(weather_data: &OpenMeteoResponse, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -310,12 +287,7 @@ where
 /// * `icon_index` - Index of the icon in the 3x3 sprite sheet (0-8)
 /// * `position` - Where to draw the icon on the display
 /// * `size` - Either 20 or 70 for the icon size
-fn draw_weather_icon<D>(
-    icon_index: i32,
-    position: Point,
-    size: u32,
-    buffer: &mut D,
-) -> Result<(), AppError>
+fn draw_weather_icon<D>(icon_index: i32, position: Point, size: u32, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2>,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -348,7 +320,7 @@ where
     log::trace!("{:?}", sub_image);
     Image::new(&sub_image, position).draw(buffer).map_err(|e| {
         log::error!("Failed to draw weather icon to display buffer: {:?}", e);
-        AppError::DisplayError
+        AppError::GraphicsError
     })
 }
 
@@ -412,7 +384,7 @@ where
     type Color = BinaryColor;
     type Error = T::Error;
 
-    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    fn draw_iter<I>(&mut self, pixels: I) -> core::result::Result<(), Self::Error>
     where
         I: IntoIterator<Item = Pixel<Self::Color>>,
     {

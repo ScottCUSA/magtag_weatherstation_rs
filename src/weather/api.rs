@@ -5,7 +5,7 @@ use crate::{
         OPENMETEO_LATITUDE, OPENMETEO_LONGITUDE, OPENMETEO_TIMEZONE, TEMPERATURE_UNIT,
         WIND_SPEED_UNIT,
     },
-    error::AppError,
+    error::{AppError, Result},
     weather::{
         http::{http_get, url_encode_component},
         model::OpenMeteoResponse,
@@ -19,9 +19,7 @@ const HEADERS_STR: &str = "Accept: application/json";
 pub const OPEN_METEO_URL: &str = "api.open-meteo.com";
 
 /// Fetch weather and return a parsed `OpenMeteoResponse`.
-pub async fn fetch_weather(
-    stack: embassy_net::Stack<'static>,
-) -> Result<OpenMeteoResponse, AppError> {
+pub async fn fetch_weather(stack: embassy_net::Stack<'static>) -> Result<OpenMeteoResponse> {
     let buf = fetch_weather_data(
         stack,
         OPENMETEO_LATITUDE,
@@ -36,13 +34,12 @@ pub async fn fetch_weather(
         e
     })?;
 
-    match OpenMeteoResponse::try_from(extract_json_payload(&buf)) {
-        Ok(parsed) => Ok(parsed),
-        Err(e) => {
-            log::error!("Failed to parse JSON response: {:?}", e);
-            Err(AppError::JsonParseFailed)
-        }
-    }
+    let parsed = OpenMeteoResponse::try_from(extract_json_payload(&buf)).map_err(|e| {
+        log::error!("Failed to parse JSON response: {:?}", e);
+        AppError::from(e)
+    })?;
+
+    Ok(parsed)
 }
 
 /// Fetch weather data for a custom latitude, longitude and timezone.
@@ -58,7 +55,7 @@ pub async fn fetch_weather_data(
     timezone: &str,
     temperature_unit: &str,
     windspeed_unit: &str,
-) -> Result<Vec<u8>, AppError> {
+) -> Result<Vec<u8>> {
     // Build request using custom coordinates/timezone
     let query = build_open_meteo_query(
         latitude,
@@ -85,7 +82,7 @@ pub fn build_open_meteo_query(
     timezone: &str,
     temperature_unit: &str,
     windspeed_unit: &str,
-) -> Result<String, AppError> {
+) -> Result<String> {
     let lat_enc = url_encode_component(latitude)?;
     let long_enc = url_encode_component(longitude)?;
     let tz_enc = url_encode_component(timezone)?;

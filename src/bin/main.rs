@@ -22,7 +22,10 @@ use log::info;
 use magtag_weatherstation::{
     network::{connection, net_task},
     sleep::enter_deep_sleep_secs,
-    weather::{display::show_app_error, fetch_weather},
+    weather::{
+        display::{display_app_error, display_error_text},
+        fetch_weather,
+    },
 };
 
 const SLEEP_ON_ERROR_SECS: u64 = 60 * 5;
@@ -96,7 +99,7 @@ async fn main(spawner: Spawner) -> ! {
                 log::error!("Failed to initialize radio: {:?}", e);
                 let error_msg: heapless::String<128> =
                     format!("Failed to initialize radio: {e}").unwrap_or_default();
-                show_app_error(&error_msg, spi_device, busy, dc, rst);
+                display_error_text(&error_msg, spi_device, busy, dc, rst);
                 enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
             }
         }
@@ -108,7 +111,7 @@ async fn main(spawner: Spawner) -> ! {
                 log::error!("Failed to initialize WiFi: {:?}", e);
                 let error_msg: heapless::String<128> =
                     format!("Failed to initialize WiFi: {e}").unwrap_or_default();
-                show_app_error(&error_msg, spi_device, busy, dc, rst);
+                display_error_text(&error_msg, spi_device, busy, dc, rst);
                 enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
             }
         };
@@ -142,7 +145,7 @@ async fn main(spawner: Spawner) -> ! {
     .is_err()
     {
         log::error!("Timed out waiting for link up");
-        show_app_error("Timed out waiting for link up", spi_device, busy, dc, rst);
+        display_error_text("Timed out waiting for link up", spi_device, busy, dc, rst);
         enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
     }
 
@@ -160,7 +163,7 @@ async fn main(spawner: Spawner) -> ! {
     .is_err()
     {
         log::error!("Timed out waiting for IP address");
-        show_app_error(
+        display_error_text(
             "Timed out waiting for IP address",
             spi_device,
             busy,
@@ -172,24 +175,21 @@ async fn main(spawner: Spawner) -> ! {
 
     let weather_data = match fetch_weather(stack).await {
         Ok(weather_data) => weather_data,
-        Err(_) => {
-            log::error!("Failed to fetch weather, sleeping to retry");
+        Err(e) => {
+            log::error!("Failed to fetch weather, sleeping to retry{:?}", e);
+            display_app_error(&e, spi_device, busy, dc, rst);
             enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
         }
     };
 
     // Fetch and display weather data
-    let weather_result =
-        magtag_weatherstation::weather::display_weather(weather_data, spi_device, busy, dc, rst);
-
-    // Handle result and enter deep sleep
-    match weather_result {
+    match magtag_weatherstation::weather::display_weather(weather_data, spi_device, busy, dc, rst) {
         Ok(_) => {
             log::info!("Weather display successful, sleeping for 24 hours");
             enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS);
         }
-        Err(_) => {
-            log::error!("Fetching weather failed, showing error and sleeping to retry");
+        Err(e) => {
+            log::error!("Displaying weather failed, sleeping to retry {:?}", e);
             enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
         }
     }
