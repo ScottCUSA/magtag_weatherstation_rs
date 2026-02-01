@@ -30,6 +30,29 @@ pub static CHARACTER_STYLE: Lazy<MonoTextStyle<Gray2>> = Lazy::new(|| {
     )
 });
 
+/// Draw the provided weather data to the display (graphical or textual
+/// depending on compile-time feature).
+pub fn display_weather(
+    parsed: OpenMeteoResponse,
+    spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
+    busy: Input<'static>,
+    dc: Output<'static>,
+    rst: Output<'static>,
+) -> Result<(), AppError> {
+    #[cfg(feature = "graphical")]
+    {
+        graphical_display(parsed, spi_device, busy, dc, rst)
+    }
+
+    #[cfg(not(feature = "graphical"))]
+    {
+        // create the textual summary
+        let out = String::from(&parsed);
+        let _ = text_display(out.as_str(), spi_device, busy, dc, rst);
+        Ok(())
+    }
+}
+
 pub fn text_display(
     text: &str,
     spi_device: &mut ExclusiveDevice<Spi<'static, esp_hal::Blocking>, Output<'static>, Delay>,
@@ -100,7 +123,7 @@ pub fn graphical_display(
     dc: Output<'static>,
     rst: Output<'static>,
 ) -> Result<(), AppError> {
-    use crate::graphics::{
+    use super::graphics::{
         draw_background_image, draw_future_weather_view, draw_today_date, draw_today_high_low,
         draw_today_lat_long, draw_today_sunrise_sunset, draw_today_weather_icon, draw_today_wind,
     };
@@ -149,7 +172,7 @@ pub fn graphical_display(
             .wind_direction_10m_dominant
             .first()
             .unwrap(),
-        weather_data.daily_units.wind_speed_10m_max,
+        weather_data.daily_units.wind_speed_10m_max.as_str(),
         &mut display,
     )?;
     draw_today_sunrise_sunset(

@@ -15,34 +15,33 @@ use heapless::String;
 use once_cell::sync::Lazy;
 
 use crate::{
-    display::CHARACTER_STYLE,
     error::AppError,
     time::{format_date, get_iso_8601_hh_mm},
+    weather::display::CHARACTER_STYLE,
     weather::model::OpenMeteoResponse,
 };
 
 // load img data at compile time into static storage
 static WEATHER_BG: Lazy<ImageRaw<'static, BinaryColor>> = Lazy::new(|| {
     ImageRaw::<BinaryColor>::new(
-        include_bytes!("../resources/weather_bg_296x128_1b.raw"),
+        include_bytes!("../../resources/weather_bg_296x128_1b.raw"),
         296,
     )
 });
 
 static WEATHER_ICONS_20PX: Lazy<ImageRaw<'static, Gray2>> = Lazy::new(|| {
     ImageRaw::<Gray2>::new(
-        include_bytes!("../resources/weather_icons_20px_60x60_2b.raw"),
+        include_bytes!("../../resources/weather_icons_20px_60x60_2b.raw"),
         60,
     )
 });
 
 static WEATHER_ICONS_70PX: Lazy<ImageRaw<'static, Gray2>> = Lazy::new(|| {
     ImageRaw::<Gray2>::new(
-        include_bytes!("../resources/weather_icons_70px_210x210_2b.raw"),
+        include_bytes!("../../resources/weather_icons_70px_210x210_2b.raw"),
         210,
     )
 });
-
 // TODO: consider moving to ssd1680 library
 /// Adapter to convert BinaryColor drawings to Gray2
 struct BinaryToGray2Adapter<'a, T>(&'a mut T);

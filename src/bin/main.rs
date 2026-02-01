@@ -20,10 +20,9 @@ use esp_radio::Controller;
 use heapless::format;
 use log::info;
 use magtag_weatherstation::{
-    display::show_app_error,
     network::{connection, net_task},
     sleep::enter_deep_sleep_secs,
-    weather::fetch_and_display_weather,
+    weather::{display::show_app_error, fetch_weather},
 };
 
 const SLEEP_ON_ERROR_SECS: u64 = 60 * 5;
@@ -171,8 +170,17 @@ async fn main(spawner: Spawner) -> ! {
         enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
     }
 
+    let weather_data = match fetch_weather(stack).await {
+        Ok(weather_data) => weather_data,
+        Err(_) => {
+            log::error!("Failed to fetch weather, sleeping to retry");
+            enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS);
+        }
+    };
+
     // Fetch and display weather data
-    let weather_result = fetch_and_display_weather(stack, spi_device, busy, dc, rst).await;
+    let weather_result =
+        magtag_weatherstation::weather::display_weather(weather_data, spi_device, busy, dc, rst);
 
     // Handle result and enter deep sleep
     match weather_result {

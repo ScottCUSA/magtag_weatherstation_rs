@@ -1,8 +1,15 @@
 use core::fmt::Write as _;
 
 use crate::{
+    config::{
+        OPENMETEO_LATITUDE, OPENMETEO_LONGITUDE, OPENMETEO_TIMEZONE, TEMPERATURE_UNIT,
+        WIND_SPEED_UNIT,
+    },
     error::AppError,
-    weather::http::{http_get, url_encode_component},
+    weather::{
+        http::{http_get, url_encode_component},
+        model::OpenMeteoResponse,
+    },
 };
 
 extern crate alloc;
@@ -67,4 +74,47 @@ pub async fn fetch_weather_data(
 
     // Perform HTTP GET request
     http_get(stack, OPEN_METEO_URL, &query, Some(HEADERS_STR)).await
+}
+
+/// Fetch weather and return a parsed `OpenMeteoResponse`.
+pub async fn fetch_weather(
+    stack: embassy_net::Stack<'static>,
+) -> Result<OpenMeteoResponse, AppError> {
+    let buf = fetch_weather_data(
+        stack,
+        OPENMETEO_LATITUDE,
+        OPENMETEO_LONGITUDE,
+        OPENMETEO_TIMEZONE,
+        TEMPERATURE_UNIT,
+        WIND_SPEED_UNIT,
+    )
+    .await
+    .map_err(|e| {
+        log::error!("Fetching weather data failed: {:?}", e);
+        e
+    })?;
+
+    match OpenMeteoResponse::try_from(extract_json_payload(&buf)) {
+        Ok(parsed) => Ok(parsed),
+        Err(e) => {
+            log::error!("Failed to parse JSON response: {:?}", e);
+            Err(AppError::JsonParseFailed)
+        }
+    }
+}
+
+/// Extracts the JSON payload from an HTTP response buffer
+fn extract_json_payload(buf: &[u8]) -> &[u8] {
+    // Find where JSON starts (after HTTP headers or at first JSON character)
+    let start = buf
+        .windows(4)
+        .position(|window| window == b"\r\n\r\n")
+        .map(|pos| pos + 4)
+        .or_else(|| buf.iter().position(|&b| b == b'{' || b == b'['))
+        .unwrap_or(0);
+
+    // Find where the buffer ends (at null byte or end of buffer)
+    let end = buf.iter().position(|&b| b == b'\0').unwrap_or(buf.len());
+
+    &buf[start..end]
 }
