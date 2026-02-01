@@ -1,5 +1,6 @@
 use embedded_graphics::{
     image::{Image, ImageRaw},
+    mono_font::MonoTextStyle,
     pixelcolor::{BinaryColor, Gray2},
     prelude::*,
     primitives::Rectangle,
@@ -17,9 +18,16 @@ use once_cell::sync::Lazy;
 use crate::{
     error::AppError,
     time::{format_date, get_iso_8601_hh_mm},
-    weather::display::CHARACTER_STYLE,
     weather::model::OpenMeteoResponse,
 };
+
+// text style: monospace 6x10 as used previously
+pub static CHARACTER_STYLE: Lazy<MonoTextStyle<Gray2>> = Lazy::new(|| {
+    MonoTextStyle::new(
+        &embedded_graphics::mono_font::ascii::FONT_6X10,
+        Gray2::BLACK,
+    )
+});
 
 // load img data at compile time into static storage
 static WEATHER_BG: Lazy<ImageRaw<'static, BinaryColor>> = Lazy::new(|| {
@@ -43,8 +51,77 @@ static WEATHER_ICONS_70PX: Lazy<ImageRaw<'static, Gray2>> = Lazy::new(|| {
     )
 });
 
+pub fn draw_weather_station_view<D>(
+    weather_data: &OpenMeteoResponse,
+    buffer: &mut D,
+) -> Result<(), AppError>
+where
+    D: DrawTarget<Color = Gray2> + OriginDimensions,
+    <D as DrawTarget>::Error: core::fmt::Debug,
+{
+    draw_background_image(buffer)?;
+    draw_today_weather_icon(*weather_data.daily.weather_code.first().unwrap(), buffer)?;
+    draw_today_date(weather_data.daily.time.first().unwrap(), buffer)?;
+    draw_today_lat_long(weather_data.latitude, weather_data.longitude, buffer)?;
+    draw_today_high_low(
+        *weather_data.daily.temperature_2m_max.first().unwrap(),
+        *weather_data.daily.temperature_2m_min.first().unwrap(),
+        &weather_data
+            .daily_units
+            .temperature_2m_max
+            .chars()
+            .last()
+            .unwrap(),
+        buffer,
+    )?;
+    draw_today_wind(
+        *weather_data.daily.wind_speed_10m_max.first().unwrap(),
+        *weather_data
+            .daily
+            .wind_direction_10m_dominant
+            .first()
+            .unwrap(),
+        weather_data.daily_units.wind_speed_10m_max.as_str(),
+        buffer,
+    )?;
+    draw_today_sunrise_sunset(
+        weather_data.daily.sunrise.first().unwrap(),
+        weather_data.daily.sunset.first().unwrap(),
+        buffer,
+    )?;
+    draw_future_weather_view(&weather_data, buffer)
+}
+
+pub fn draw_text<D>(
+    text: &str,
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+    buffer: &mut D,
+) -> Result<(), AppError>
+where
+    D: DrawTarget<Color = Gray2> + OriginDimensions,
+    <D as DrawTarget>::Error: core::fmt::Debug,
+{
+    let textbox_style = TextBoxStyleBuilder::new()
+        .height_mode(HeightMode::FitToText)
+        .alignment(HorizontalAlignment::Left)
+        .paragraph_spacing(2)
+        .build();
+
+    let bounds = Rectangle::new(Point::new(x, y), Size::new(w, h));
+    let text_box = TextBox::with_textbox_style(text, bounds, *CHARACTER_STYLE, textbox_style);
+    text_box.draw(buffer).map_err(|e| {
+        log::error!("Failed to draw text to display buffer: {:?}", e);
+        AppError::DisplayError
+    })?;
+
+    Ok(())
+}
+
 /// Draw the background image onto the buffer
-pub fn draw_background_image<D>(buffer: &mut D) -> Result<(), AppError>
+fn draw_background_image<D>(buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
 {
@@ -60,7 +137,7 @@ where
 }
 
 /// Draw the today weather view onto the display buffer
-pub fn draw_today_date<D>(date: &str, buffer: &mut D) -> Result<(), AppError>
+fn draw_today_date<D>(date: &str, buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -75,7 +152,7 @@ where
 }
 
 /// Draw the today weather view onto the display buffer
-pub fn draw_today_lat_long<D>(lat: f32, long: f32, buffer: &mut D) -> Result<(), AppError>
+fn draw_today_lat_long<D>(lat: f32, long: f32, buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -89,7 +166,7 @@ where
     Ok(())
 }
 
-pub fn draw_today_high_low<D>(
+fn draw_today_high_low<D>(
     high: f32,
     low: f32,
     temp_unit: &char,
@@ -116,7 +193,7 @@ where
     Ok(())
 }
 
-pub fn draw_today_wind<D>(
+fn draw_today_wind<D>(
     wind_speed: f32,
     wind_dir: i32,
     wind_unit: &str,
@@ -138,7 +215,7 @@ where
     Ok(())
 }
 
-pub fn draw_today_weather_icon<D>(weather_code: i32, buffer: &mut D) -> Result<(), AppError>
+fn draw_today_weather_icon<D>(weather_code: i32, buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -149,11 +226,7 @@ where
     Ok(())
 }
 
-pub fn draw_today_sunrise_sunset<D>(
-    sunrise: &str,
-    sunset: &str,
-    buffer: &mut D,
-) -> Result<(), AppError>
+fn draw_today_sunrise_sunset<D>(sunrise: &str, sunset: &str, buffer: &mut D) -> Result<(), AppError>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -171,7 +244,7 @@ where
 }
 
 /// Draw the future weather view onto the display buffer
-pub fn draw_future_weather_view<D>(
+fn draw_future_weather_view<D>(
     weather_data: &OpenMeteoResponse,
     buffer: &mut D,
 ) -> Result<(), AppError>
@@ -237,7 +310,7 @@ where
 /// * `icon_index` - Index of the icon in the 3x3 sprite sheet (0-8)
 /// * `position` - Where to draw the icon on the display
 /// * `size` - Either 20 or 70 for the icon size
-pub fn draw_weather_icon<D>(
+fn draw_weather_icon<D>(
     icon_index: i32,
     position: Point,
     size: u32,
@@ -277,34 +350,6 @@ where
         log::error!("Failed to draw weather icon to display buffer: {:?}", e);
         AppError::DisplayError
     })
-}
-
-pub fn draw_text<D>(
-    text: &str,
-    x: i32,
-    y: i32,
-    w: u32,
-    h: u32,
-    buffer: &mut D,
-) -> Result<(), AppError>
-where
-    D: DrawTarget<Color = Gray2> + OriginDimensions,
-    <D as DrawTarget>::Error: core::fmt::Debug,
-{
-    let textbox_style = TextBoxStyleBuilder::new()
-        .height_mode(HeightMode::FitToText)
-        .alignment(HorizontalAlignment::Left)
-        .paragraph_spacing(2)
-        .build();
-
-    let bounds = Rectangle::new(Point::new(x, y), Size::new(w, h));
-    let text_box = TextBox::with_textbox_style(text, bounds, *CHARACTER_STYLE, textbox_style);
-    text_box.draw(buffer).map_err(|e| {
-        log::error!("Failed to draw text to display buffer: {:?}", e);
-        AppError::DisplayError
-    })?;
-
-    Ok(())
 }
 
 /// Map weather codes to icon indices in the sprite sheet (3x3 grid, row-major order)

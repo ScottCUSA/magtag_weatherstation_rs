@@ -83,8 +83,8 @@ pub struct DailyUnits {
     pub wind_direction_10m_dominant: String<BUF_LEN>,
 }
 
-/// Parse the weather JSON response into an ApiResponse struct
-/// Allow converting a byte slice into an owned, borrowed `ApiResponse` using the
+/// Parse the weather JSON response into an OpenMeteoResponse struct
+/// Allow converting a byte slice into an owned, borrowed `OpenMeteoResponse` using the
 /// standard library conversion trait. This makes the parser usable in generic
 /// contexts where a TryFrom impl is expected.
 impl core::convert::TryFrom<&[u8]> for OpenMeteoResponse {

@@ -12,7 +12,6 @@ use crate::{
     },
 };
 
-extern crate alloc;
 use alloc::{string::String, vec::Vec};
 
 const DAILY_FIELDS: &str = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant";
