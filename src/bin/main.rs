@@ -84,6 +84,7 @@ async fn main(spawner: Spawner) -> ! {
 
     // Initialize network stack
     // sends NETWORK_ERROR signal if link-up, or acquire IP times out
+    // sends NETWORK_READY if both succeed
     let (stack, runner) = tasks::network::init_network_stack(wifi_interface);
     spawner
         .spawn(tasks::network::net_runner_task(runner))
@@ -93,7 +94,8 @@ async fn main(spawner: Spawner) -> ! {
         .expect("Failed to spawn net_validator_task");
 
     // Spawn the weather fetcher
-    // sends WEATHER_CHANNEL on success NETWORK_ERROR on failure
+    // recieves NETWORK_READY message when stack ready for request
+    // sends DATA_CHANNEL on success, NETWORK_ERROR on failure
     spawner
         .spawn(tasks::weather::weather_fetcher_task(stack))
         .expect("Failed to spawn weather_fetcher_task");
