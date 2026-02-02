@@ -47,7 +47,7 @@ async fn main(spawner: Spawner) -> ! {
         .expect("Failed to spawn deep sleep task");
 
     // Spawn the display task
-    // receives NETWORK_ERROR and DATA_CHANNEL messages
+    // waits for NETWORK_ERROR signal or DATA_CHANNEL messages
     spawner
         .spawn(tasks::display::display_task(
             tasks::display::DisplayResources {
@@ -84,7 +84,7 @@ async fn main(spawner: Spawner) -> ! {
 
     // Initialize network stack
     // sends NETWORK_ERROR signal if link-up, or acquire IP times out
-    // sends NETWORK_READY if both succeed
+    // sends NETWORK_READY signal when link up and IP acquired
     let (stack, runner) = tasks::network::init_network_stack(wifi_interface);
     spawner
         .spawn(tasks::network::net_runner_task(runner))
@@ -94,7 +94,7 @@ async fn main(spawner: Spawner) -> ! {
         .expect("Failed to spawn net_validator_task");
 
     // Spawn the weather fetcher
-    // recieves NETWORK_READY message when stack ready for request
+    // waits for NETWORK_READY signal
     // sends DATA_CHANNEL on success, NETWORK_ERROR on failure
     spawner
         .spawn(tasks::weather::weather_fetcher_task(stack))
