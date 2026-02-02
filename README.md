@@ -164,6 +164,7 @@ sequenceDiagram
    participant Main as main (bin/main.rs)
    participant Executor as Embassy Executor / Spawner
 
+   Main->>Executor: spawner.spawn(sleep::deep_sleep_task(rtc))
    Main->>Executor: spawner.spawn(display::display_task(DisplayResources))
    Main->>Executor: spawner.spawn(network::wifi_task(controller))
    Main->>Executor: spawner.spawn(network::net_runner_task(runner))
