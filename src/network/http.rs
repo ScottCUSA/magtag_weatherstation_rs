@@ -1,16 +1,14 @@
 use core::fmt::Write as _;
-use embassy_net::{dns::DnsQueryType, tcp::TcpSocket};
+use embassy_net::tcp::TcpSocket;
 use embassy_time::{Duration, Instant, with_deadline};
 use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 
-use crate::error::AppError;
+use crate::config::{CONNECT_TIMEOUT, REQUEST_TIMEOUT, RESPONSE_TIMEOUT};
+use crate::error::{AppError, Result};
+use crate::network::get_ip;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-const RESOLVE_TIMEOUT: Duration = Duration::from_secs(5);
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
-const RESPONSE_TIMEOUT: Duration = Duration::from_secs(10);
 const QUERY_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b' ')
     .add(b'!')
@@ -42,7 +40,7 @@ const QUERY_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}')
     .add(b'~');
 
-pub fn url_encode_component(component: &str) -> Result<String, AppError> {
+pub fn url_encode_component(component: &str) -> Result<String> {
     let mut buf = String::new();
     write!(buf, "{}", utf8_percent_encode(component, QUERY_ENCODE_SET))
         .map_err(|_| AppError::Other)?;
@@ -84,7 +82,7 @@ pub fn build_http_request(
     host: &str,
     headers: Option<&str>,
     body: Option<&str>,
-) -> Result<String, AppError> {
+) -> Result<String> {
     let mut req: String = String::new();
     write!(
         req,
@@ -105,6 +103,7 @@ pub fn build_http_request(
 
     write!(req, "\r\n\r\n").map_err(|_| AppError::HttpRequestFailed)?;
 
+    log::debug!("HTTP request: {req}");
     Ok(req)
 }
 
@@ -114,37 +113,20 @@ pub fn build_http_request(
 /// sending the request, and reading the response into a fixed-size buffer.
 ///
 /// Returns a buffer containing the raw HTTP response (headers + body).
-pub async fn http_get(
+pub async fn http_get_raw(
     stack: embassy_net::Stack<'static>,
     host: &str,
     target: &str,
     headers: Option<&str>,
-) -> Result<Vec<u8>, AppError> {
+) -> Result<Vec<u8>> {
     let mut rx_buffer: Vec<u8> = vec![0; 1536];
     let mut tx_buffer: Vec<u8> = vec![0; 512];
 
+    log::info!("Making HTTP GET request to: {host}{target}");
+
     let request = build_http_request(Method::Get, target, host, headers, None)?;
 
-    log::debug!("resolving IP for {}...", host);
-
-    let ip_addrs = match with_deadline(Instant::now() + RESOLVE_TIMEOUT, async {
-        stack.dns_query(host, DnsQueryType::A).await
-    })
-    .await
-    {
-        Ok(Ok(addrs)) => addrs,
-        Ok(Err(e)) => {
-            log::error!("DNS query failed: {:?}", e);
-            log::error!("Cannot resolve {}", host);
-            return Err(AppError::DnsQueryFailed);
-        }
-        Err(_) => {
-            log::error!("DNS query timed out");
-            return Err(AppError::RequestTimeout);
-        }
-    };
-
-    log::debug!("resolved IP(s) for {:?}...", ip_addrs);
+    let ip_addrs = get_ip(host, &stack).await?;
 
     let mut socket = TcpSocket::new(stack, &mut rx_buffer[..], &mut tx_buffer[..]);
     socket.set_timeout(Some(Duration::from_secs(10)));
@@ -230,8 +212,8 @@ pub async fn http_get(
     Ok(resp)
 }
 
-/// Extracts the JSON payload from an HTTP response buffer
-pub fn extract_json_payload(buf: &[u8]) -> &[u8] {
+/// Extracts the body from a raw HTTP response buffer
+pub fn extract_body(buf: &[u8]) -> &[u8] {
     // Find where JSON starts (after HTTP headers or at first JSON character)
     let start = buf
         .windows(4)

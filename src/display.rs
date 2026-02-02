@@ -25,7 +25,7 @@ pub fn display_weather(
     dc: Output<'static>,
     rst: Output<'static>,
 ) -> Result<()> {
-    log::info!("Drawing graphical display");
+    log::info!("Beginning weather station display");
     let mut display = Display2in9Gray2::new();
     match draw_weather_station_view(&weather_data, &mut display) {
         Ok(_) => (),
@@ -95,26 +95,25 @@ fn display_buffer(
     dc: Output<'static>,
     rst: Output<'static>,
 ) -> Result<()> {
+    log::info!("Initializing e-paper display");
     // Create display with SPI interface
     let mut epd = ThinkInk2in9Gray2::new(spi_device, busy, dc, rst).map_err(|e| {
         log::error!("Failed to create e-paper display: {:?}", e);
         AppError::DisplayError
     })?;
-
     // Initialize the display
     epd.begin(&mut Delay::new()).map_err(|e| {
         log::error!("Failed to initialize e-paper display: {:?}", e);
         AppError::DisplayError
     })?;
-    log::info!("E-paper display initialized");
 
-    log::info!("Drawing to display");
+    log::info!("Updating display");
     // Transfer and display the buffer on the display
     epd.update_gray2_and_display(buffer.high_buffer(), buffer.low_buffer(), &mut Delay::new())
         .map_err(|e| {
             log::error!("Failed to update e-paper display: {:?}", e);
             AppError::DisplayError
         })?;
-    log::info!("updated display successfully");
+    log::info!("Updated display successfully");
     Ok(())
 }

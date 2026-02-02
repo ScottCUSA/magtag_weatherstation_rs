@@ -168,11 +168,11 @@ sequenceDiagram
    participant Main as main (bin/main.rs)
    participant Executor as Embassy Executor / Spawner
 
+   Main->>Executor: spawner.spawn(display::display_task(..., rtc))
    Main->>Executor: spawner.spawn(network::wifi_task(controller))
    Main->>Executor: spawner.spawn(network::net_runner_task(runner))
    Main->>Executor: spawner.spawn(network::net_validator_task(stack))
    Main->>Executor: spawner.spawn(weather::weather_fetcher_task(stack))
-   Main->>Executor: spawner.spawn(display::display_task(..., rtc))
 
    Note over Main,Executor: After spawning, main yields to the executor loop
 ```
@@ -182,10 +182,19 @@ The diagram below shows the main tasks as well as the channels and signals used 
 
 ```mermaid
 sequenceDiagram
+   participant Display as display::display_task
    participant NetValidator as network::net_validator_task
    participant Weather as weather::weather_fetcher_task
-   participant Display as display::display_task
    participant Sleep as sleep::enter_deep_sleep_secs
+   
+   Display->>Display: select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive())
+   alt Received NETWORK_ERROR
+      Display->>Display: display_error_text(...)
+      Display->>Sleep: enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS)
+   else Received WEATHER_CHANNEL data
+      Display->>Display: display_weather(...)
+      Display->>Sleep: enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS)
+   end
    
    NetValidator->>NetValidator: wait for link and IP
    alt IP acquired
@@ -200,14 +209,6 @@ sequenceDiagram
       Weather->>Display: send NETWORK_ERROR (Channel<String>)
    end
 
-   Display->>Display: select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive())
-   alt Received NETWORK_ERROR
-      Display->>Display: display_error_text(...)
-      Display->>Sleep: enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS)
-   else Received WEATHER_CHANNEL data
-      Display->>Display: display_weather(...)
-      Display->>Sleep: enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS)
-   end
 
 ```
 

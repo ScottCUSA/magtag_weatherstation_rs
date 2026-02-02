@@ -120,13 +120,13 @@ where
     temp_buf.clear();
     write!(&mut temp_buf, "{:.0}{}", low, temp_unit).unwrap();
     draw_text_xy_wh(&temp_buf, 100, 60, 80, 0, buffer)?;
-    log::info!("low temp drawn successfully");
+    log::info!("Low temp drawn successfully");
 
     // Draw the high temperature
     temp_buf.clear();
     write!(&mut temp_buf, "{:.0}{}", high, temp_unit).unwrap();
     draw_text_xy_wh(&temp_buf, 140, 60, 80, 0, buffer)?;
-    log::info!("high temp drawn successfully");
+    log::info!("High temp drawn successfully");
 
     Ok(())
 }
@@ -143,7 +143,7 @@ where
     wind_buf.clear();
     write!(&mut wind_buf, "{}{} {}", wind_speed, wind_unit, wind_dir).unwrap();
     draw_text_xy_wh(&wind_buf, 95, 90, 80, 0, buffer)?;
-    log::info!("windspeed drawn successfully");
+    log::info!("Windspeed drawn successfully");
 
     Ok(())
 }
@@ -155,7 +155,7 @@ where
 {
     let icon = weather_code_to_icon_index(weather_code);
     draw_weather_icon(icon, Point::new(6, 40), 70, buffer)?;
-    log::info!("today weather icon drawn successfully");
+    log::info!("Today weather icon drawn successfully");
     Ok(())
 }
 
@@ -167,12 +167,12 @@ where
     // Draw sunrise
     let time = iso_8601_hh_mm(sunrise).unwrap();
     draw_text_xy_wh(time, 30, 113, 296, 0, buffer)?;
-    log::info!("sunrise drawn successfully");
+    log::info!("Sunrise drawn successfully");
 
     // Draw sunset
     let time = iso_8601_hh_mm(sunset).unwrap();
     draw_text_xy_wh(time, 115, 113, 296, 0, buffer)?;
-    log::info!("sunset drawn successfully");
+    log::info!("Sunset drawn successfully");
     Ok(())
 }
 
@@ -243,7 +243,7 @@ where
             buffer,
         )?;
 
-        log::info!("future day {} drawn successfully", i);
+        log::info!("Future day {} drawn successfully", i);
     }
     Ok(())
 }

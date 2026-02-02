@@ -59,7 +59,6 @@ serde = { version = "1.0.228", features = [
   "alloc",
 ], default-features = false }
 serde-json-core = "0.6"
-heapless = { version = "0.9.2", features = ["serde"] }
 
 # drawing handled by embedded-graphics (wrapping, alignment, textbox)
 embedded-graphics = "0.8.1"
@@ -72,6 +71,7 @@ once_cell = { version = "1.21.3", features = [
 embassy-executor = "0.9.1"
 embassy-time = "0.5.0"
 embassy-net = { version = "0.8", features = ["dhcpv4", "tcp", "udp", "dns"] }
+heapless = { version = "0.8.0", features = ["serde"] }
 embedded-io-async = "0.7"
 percent-encoding = { version = "2.3.2", default-features = false }
 embassy-sync = "0.7.2"

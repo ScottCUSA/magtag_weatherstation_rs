@@ -3,7 +3,6 @@ use embedded_hal_bus::spi::ExclusiveDevice;
 use esp_hal::{
     delay::Delay,
     gpio::{Input, InputConfig, Level, Output, OutputConfig},
-    rtc_cntl::Rtc,
     spi::{
         self,
         master::{AnySpi, Spi},
@@ -14,12 +13,11 @@ use magtag_weatherstation::{
     config::{SLEEP_ON_ERROR_SECS, SLEEP_ON_SUCCESS_SECS},
     display::{display_error_text, display_weather},
     mk_static,
-    sleep::enter_deep_sleep_secs,
 };
 
 use esp_hal::gpio::AnyPin;
 
-use crate::{NETWORK_ERROR, WEATHER_CHANNEL};
+use crate::{NETWORK_ERROR, SLEEP_CHANNEL, WEATHER_CHANNEL, tasks::sleep::SleepReason};
 
 pub(crate) struct DisplayResources {
     pub sclk: AnyPin<'static>,
@@ -30,7 +28,6 @@ pub(crate) struct DisplayResources {
     pub rst: AnyPin<'static>,
     pub dc: AnyPin<'static>,
     pub cs: AnyPin<'static>,
-    pub rtc: &'static mut Rtc<'static>,
 }
 
 #[embassy_executor::task]
@@ -47,7 +44,10 @@ pub(crate) async fn display_task(resources: DisplayResources) {
             .with_mosi(resources.mosi),
         Err(e) => {
             log::error!("Failed to initialize SPI: {:?}", e);
-            enter_deep_sleep_secs(resources.rtc, SLEEP_ON_ERROR_SECS);
+            SLEEP_CHANNEL
+                .send((SLEEP_ON_ERROR_SECS, SleepReason::HardwareInitError))
+                .await;
+            return;
         }
     };
     let busy = Input::new(resources.busy, InputConfig::default());
@@ -61,7 +61,10 @@ pub(crate) async fn display_task(resources: DisplayResources) {
             Ok(device) => device,
             Err(e) => {
                 log::error!("Failed to create SPI device: {:?}", e);
-                enter_deep_sleep_secs(resources.rtc, SLEEP_ON_ERROR_SECS);
+                SLEEP_CHANNEL
+                    .send((SLEEP_ON_ERROR_SECS, SleepReason::HardwareInitError))
+                    .await;
+                return;
             }
         }
     );
@@ -70,17 +73,23 @@ pub(crate) async fn display_task(resources: DisplayResources) {
     match select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive()).await {
         Either::First(err_msg) => {
             display_error_text(&err_msg, spi_device, busy, dc, rst);
-            enter_deep_sleep_secs(resources.rtc, SLEEP_ON_ERROR_SECS);
+            SLEEP_CHANNEL
+                .send((SLEEP_ON_ERROR_SECS, SleepReason::NetworkError))
+                .await;
         }
         Either::Second(weather_data) => {
             match display_weather(weather_data, spi_device, busy, dc, rst) {
                 Ok(_) => {
                     log::info!("Weather display successful, sleeping...");
-                    enter_deep_sleep_secs(resources.rtc, SLEEP_ON_SUCCESS_SECS);
+                    SLEEP_CHANNEL
+                        .send((SLEEP_ON_SUCCESS_SECS, SleepReason::Success))
+                        .await;
                 }
                 Err(e) => {
                     log::error!("Displaying weather failed: {:?}", e);
-                    enter_deep_sleep_secs(resources.rtc, SLEEP_ON_ERROR_SECS);
+                    SLEEP_CHANNEL
+                        .send((SLEEP_ON_ERROR_SECS, SleepReason::DisplayError))
+                        .await;
                 }
             }
         }

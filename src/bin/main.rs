@@ -5,18 +5,22 @@ use embassy_executor::Spawner;
 
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
-use esp_hal::{gpio::Pin, rtc_cntl::Rtc, spi::master::AnySpi, timer::timg::TimerGroup};
+use esp_hal::{gpio::Pin, spi::master::AnySpi, timer::timg::TimerGroup};
 use esp_println::logger::init_logger_from_env;
-use magtag_weatherstation::mk_static;
 
 use embassy_sync::channel::Channel;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use magtag_weatherstation::weather::model::OpenMeteoResponse;
 
-pub static WEATHER_CHANNEL: Channel<CriticalSectionRawMutex, OpenMeteoResponse, 1> = Channel::new(); // Channel used to deliver weather data to the display task
-pub static NETWORK_READY: Signal<CriticalSectionRawMutex, ()> = Signal::new(); // Signal used to notify the weather task to begin fetch
-pub static NETWORK_ERROR: Channel<CriticalSectionRawMutex, heapless::String<128>, 1> =
+use crate::tasks::sleep::SleepReason;
+
+pub(crate) static WEATHER_CHANNEL: Channel<CriticalSectionRawMutex, OpenMeteoResponse, 1> =
+    Channel::new(); // Channel used to deliver weather data to the display task
+pub(crate) static NETWORK_READY: Signal<CriticalSectionRawMutex, ()> = Signal::new(); // Signal used to notify the weather task to begin fetch
+pub(crate) static NETWORK_ERROR: Channel<CriticalSectionRawMutex, heapless::String<128>, 1> =
     Channel::new(); // Channel used to notify display task of network/fetch errors
+pub(crate) static SLEEP_CHANNEL: Channel<CriticalSectionRawMutex, (u64, SleepReason), 1> =
+    Channel::new(); // Channel used to notify sleep task of sleep request
 
 mod tasks;
 
@@ -33,12 +37,13 @@ async fn main(spawner: Spawner) -> ! {
     // 64KB heap for network stack, JSON parsing, and HTTP buffers
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
 
-    // Initialize RTC for deep sleep
-    let rtc = mk_static!(Rtc<'static>, Rtc::new(peripherals.LPWR));
-
     // Initialize and start RTOS timer
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0);
+
+    spawner
+        .spawn(tasks::sleep::sleep_task(peripherals.LPWR))
+        .expect("Failed to spawn sleep task");
 
     // Spawn the display task
     spawner
@@ -52,7 +57,6 @@ async fn main(spawner: Spawner) -> ! {
                 rst: peripherals.GPIO6.degrade(),
                 dc: peripherals.GPIO7.degrade(),
                 cs: peripherals.GPIO8.degrade(),
-                rtc,
             },
         ))
         .expect("Failed to spawn display_task");

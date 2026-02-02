@@ -6,7 +6,7 @@ use crate::{
         OPENMETEO_WIND_UNIT,
     },
     error::{AppError, Result},
-    http::{extract_json_payload, http_get, url_encode_component},
+    network::http::{extract_body, http_get_raw, url_encode_component},
     weather::model::OpenMeteoResponse,
 };
 
@@ -34,7 +34,7 @@ pub async fn fetch_weather(stack: embassy_net::Stack<'static>) -> Result<OpenMet
         e
     })?;
 
-    let parsed = OpenMeteoResponse::try_from(extract_json_payload(&buf)).map_err(|e| {
+    let parsed = OpenMeteoResponse::try_from(extract_body(&buf)).map_err(|e| {
         log::error!("Failed to parse JSON response: {:?}", e);
         AppError::from(e)
     })?;
@@ -61,7 +61,7 @@ async fn fetch_weather_data(
     )?;
 
     // Perform HTTP GET request
-    http_get(stack, OPEN_METEO_URL, &query, Some(HEADERS_STR)).await
+    http_get_raw(stack, OPEN_METEO_URL, &query, Some(HEADERS_STR)).await
 }
 
 /// Build an Open-Meteo HTTP request for the given latitude, longitude and timezone.
