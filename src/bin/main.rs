@@ -30,12 +30,11 @@ esp_bootloader_esp_idf::esp_app_desc!();
 async fn main(spawner: Spawner) -> ! {
     // Initialize logger
     init_logger_from_env();
+    // 64KB heap for network stack, JSON parsing, and HTTP buffers
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
 
     log::info!("Initializing peripherals");
     let peripherals = esp_hal::init(esp_hal::Config::default());
-
-    // 64KB heap for network stack, JSON parsing, and HTTP buffers
-    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
 
     // Initialize and start RTOS timer
     let timg0 = TimerGroup::new(peripherals.TIMG0);
