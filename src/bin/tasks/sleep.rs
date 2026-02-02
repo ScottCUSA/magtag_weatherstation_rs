@@ -16,7 +16,7 @@ pub(crate) enum SleepReason {
 }
 
 #[embassy_executor::task]
-pub(crate) async fn sleep_task(lpwr: LPWR<'static>) {
+pub(crate) async fn deep_sleep_task(lpwr: LPWR<'static>) {
     // Initialize RTC for deep sleep
     let mut rtc = Rtc::new(lpwr);
 

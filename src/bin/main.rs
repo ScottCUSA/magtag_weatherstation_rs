@@ -41,9 +41,11 @@ async fn main(spawner: Spawner) -> ! {
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0);
 
+    // ** SPAWN EMBASSY TASKS **
+    // Spawn the deep sleep task
     spawner
-        .spawn(tasks::sleep::sleep_task(peripherals.LPWR))
-        .expect("Failed to spawn sleep task");
+        .spawn(tasks::sleep::deep_sleep_task(peripherals.LPWR))
+        .expect("Failed to spawn deep sleep task");
 
     // Spawn the display task
     spawner
