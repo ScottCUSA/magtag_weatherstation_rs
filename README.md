@@ -178,7 +178,7 @@ sequenceDiagram
    participant Display as display::display_task
    participant NetValidator as network::net_validator_task
    participant Weather as weather::weather_fetcher_task
-   participant Sleep as sleep::sleep_task
+   participant Sleep as sleep::deep_sleep_task
 
    Sleep->>Sleep: receive SLEEP_CHANNEL (sleep_seconds, reason)
    Display->>Display: select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive())
