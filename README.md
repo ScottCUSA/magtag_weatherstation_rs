@@ -57,29 +57,25 @@ WiFi credentials are read from environment variables at compile time:
 ```
 src/
 ├── bin/
-|   ├── tasks/
-|   |   ├── display.rs   # Display Embassy tasks
-|   |   ├── network.rs   # Network Embassy tasks
-|   |   ├── mod.rs       # tasks module exports
-|   |   └── weather.rs   # Weather Embassy tasks
-│   └── main.rs          # Application entry point and main loop
-├── config.rs            # Configuration constants (WiFi, location, units)
-├── display.rs           # E-paper display initialization and rendering
-├── error.rs             # Application error types
-├── graphics.rs          # Drawing helpers and text rendering
-├── http.rs              # HTTP client for API requests
-├── lib.rs               # Library root and module exports
-├── network.rs           # WiFi and network stack setup
-├── sleep.rs             # Deep sleep functionality
-├── time.rs              # Date/time formatting utilities
+│   ├── main.rs
+│   └── tasks/
+│       ├── display.rs
+│       ├── network.rs
+│       ├── sleep.rs
+│       └── weather.rs
+├── config.rs
+├── display.rs
+├── error.rs
+├── graphics.rs
+├── lib.rs
+├── network/
+│   ├── mod.rs
+│   └── http.rs
+├── time.rs
 └── weather/
-    ├── api.rs           # Open-Meteo API client
-    ├── mod.rs           # Weather module exports
-    ├── model.rs         # Serde data models for API responses
-    └── ui.rs            # Weather UI layout and rendering
-
-resources/               # Image assets (bitmaps and raw format)
-scripts/                 # Python scripts to convert images to raw format
+    ├── api.rs
+    ├── model.rs
+    └── ui.rs
 ```
 
 ## Building
@@ -168,55 +164,55 @@ sequenceDiagram
    participant Main as main (bin/main.rs)
    participant Executor as Embassy Executor / Spawner
 
-   Main->>Executor: spawner.spawn(display::display_task(..., rtc))
+   Main->>Executor: spawner.spawn(display::display_task(DisplayResources))
    Main->>Executor: spawner.spawn(network::wifi_task(controller))
    Main->>Executor: spawner.spawn(network::net_runner_task(runner))
    Main->>Executor: spawner.spawn(network::net_validator_task(stack))
    Main->>Executor: spawner.spawn(weather::weather_fetcher_task(stack))
-
-   Note over Main,Executor: After spawning, main yields to the executor loop
 ```
 
-
-The diagram below shows the main tasks as well as the channels and signals used to communicate between them.
-
+High-level runtime message flow (channels/signals used by tasks):
 ```mermaid
 sequenceDiagram
    participant Display as display::display_task
    participant NetValidator as network::net_validator_task
    participant Weather as weather::weather_fetcher_task
-   participant Sleep as sleep::enter_deep_sleep_secs
-   
+   participant Sleep as sleep::sleep_task
+
+   Sleep->>Sleep: receive SLEEP_CHANNEL (sleep_seconds, reason)
    Display->>Display: select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive())
-   alt Received NETWORK_ERROR
-      Display->>Display: display_error_text(...)
-      Display->>Sleep: enter_deep_sleep_secs(rtc, SLEEP_ON_ERROR_SECS)
-   else Received WEATHER_CHANNEL data
-      Display->>Display: display_weather(...)
-      Display->>Sleep: enter_deep_sleep_secs(rtc, SLEEP_ON_SUCCESS_SECS)
-   end
-   
+
    NetValidator->>NetValidator: wait for link and IP
    alt IP acquired
-      NetValidator->>Weather: signal NETWORK_READY
-   else  Link or IP timeout or failure
-      NetValidator->>Display: send NETWORK_ERROR (Channel<String>)
+      NetValidator->>Weather: NETWORK_READY.signal(())
+   else Link or IP timeout/failure
+      NetValidator->>Display: NETWORK_ERROR.send(msg)
    end
 
+   Weather->>Weather: fetch_weather (await NETWORK_READY)
    alt Fetch success
-      Weather->>Display: send WEATHER_CHANNEL (Channel<OpenMeteoResponse>)
+      Weather->>Display: WEATHER_CHANNEL.send(OpenMeteoResponse)
    else Fetch failure (after retries)
-      Weather->>Display: send NETWORK_ERROR (Channel<String>)
+      Weather->>Display: NETWORK_ERROR.send(msg)
    end
-
-
+   
+   alt Received NETWORK_ERROR
+      Display->>Display: display_error_text(...)
+      Display->>Sleep: send SLEEP_CHANNEL (SLEEP_ON_ERROR_SECS, SleepReason::NetworkError)
+   else Received WEATHER_CHANNEL data
+      Display->>Display: display_weather(...)
+      Display->>Sleep: send SLEEP_CHANNEL (SLEEP_ON_SUCCESS_SECS, SleepReason::Success)
+   end
+   
+   Sleep->>Sleep: configure timer wakeup and enter deep sleep (rtc.sleep_deep)
 ```
 
 **Legend**
 - `NETWORK_READY`: `Signal<()>` used by `net_validator_task` to notify `weather_fetcher_task`.
 - `WEATHER_CHANNEL`: `Channel<OpenMeteoResponse, 1>` used by `weather_fetcher_task` -> `display_task`.
 - `NETWORK_ERROR`: `Channel<heapless::String<128>, 1>` used to report link/IP/fetch errors to `display_task`.
-
+- `SLEEP_CHANNEL`: `Channel<CriticalSectionRawMutex, (u64, tasks::sleep::SleepReason), 1>` used to request deep sleep. Messages sent over this channel are a tuple `(sleep_seconds: u64, SleepReason)` where `SleepReason` is an enum with variants `Success`, `HardwareInitError`, `DisplayError`, and `NetworkError` (see `src/bin/tasks/sleep.rs`).
+- `SLEEP_ON_SUCCESS_SECS` / `SLEEP_ON_ERROR_SECS`: `u64` constants in [src/config.rs](src/config.rs) that control the default sleep durations on successful update and error paths respectively.
 This diagram mirrors the code in `src/bin/main.rs` and the tasks in `src/bin/tasks/`.
 
 ## Contributing
