@@ -41,7 +41,7 @@ async fn main(spawner: Spawner) -> ! {
     esp_rtos::start(timg0.timer0);
 
     // Spawn the deep sleep task
-    // receives SLEEP_CHANNEL messages
+    // receives SLEEP_REQUEST messages
     spawner
         .spawn(tasks::sleep::deep_sleep_task(peripherals.LPWR))
         .expect("Failed to spawn deep sleep task");
