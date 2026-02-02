@@ -12,3 +12,7 @@ pub const OPENMETEO_LONGITUDE: &str = "-104.9719";
 pub const OPENMETEO_TIMEZONE: &str = "America/Denver";
 pub const OPENMETEO_TEMP_UNIT: &str = "fahrenheit"; // fahrenheit or celsius
 pub const OPENMETEO_WIND_UNIT: &str = "mph"; // mph, kmh
+
+// deep sleep constants
+pub const SLEEP_ON_ERROR_SECS: u64 = 60 * 5;
+pub const SLEEP_ON_SUCCESS_SECS: u64 = 60 * 60 * 24;

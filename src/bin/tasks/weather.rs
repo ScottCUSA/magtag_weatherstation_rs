@@ -1,13 +1,14 @@
 use embassy_net::Stack;
 use embassy_time::{Duration, Timer};
 
-use crate::{NETWORK_ERROR, NETWORK_READY, SLEEP_ON_ERROR_SECS, WEATHER_CHANNEL};
 use core::fmt::Write;
 use heapless::String;
-use magtag_weatherstation::weather::fetch_weather;
+use magtag_weatherstation::{config::SLEEP_ON_ERROR_SECS, weather::fetch_weather};
+
+use crate::{NETWORK_ERROR, NETWORK_READY, WEATHER_CHANNEL};
 
 #[embassy_executor::task]
-pub async fn weather_fetcher_task(stack: Stack<'static>) {
+pub(crate) async fn weather_fetcher_task(stack: Stack<'static>) {
     // Wait until network validator signals that network is ready
     NETWORK_READY.wait().await;
 
