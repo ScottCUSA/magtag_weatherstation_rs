@@ -14,13 +14,13 @@ use magtag_weatherstation::weather::model::OpenMeteoResponse;
 
 use crate::tasks::sleep::SleepReason;
 
-pub(crate) static WEATHER_CHANNEL: Channel<CriticalSectionRawMutex, OpenMeteoResponse, 1> =
-    Channel::new(); // Channel used to deliver weather data to the display task
+pub(crate) static SLEEP_REQUEST: Signal<CriticalSectionRawMutex, (u64, SleepReason)> =
+    Signal::new(); // Signal used to notify sleep task of sleep request
 pub(crate) static NETWORK_READY: Signal<CriticalSectionRawMutex, ()> = Signal::new(); // Signal used to notify the weather task to begin fetch
-pub(crate) static NETWORK_ERROR: Channel<CriticalSectionRawMutex, heapless::String<128>, 1> =
-    Channel::new(); // Channel used to notify display task of network/fetch errors
-pub(crate) static SLEEP_CHANNEL: Channel<CriticalSectionRawMutex, (u64, SleepReason), 1> =
-    Channel::new(); // Channel used to notify sleep task of sleep request
+pub(crate) static NETWORK_ERROR: Signal<CriticalSectionRawMutex, heapless::String<128>> =
+    Signal::new(); // Signal used to notify display task of network/fetch errors
+pub(crate) static DATA_CHANNEL: Channel<CriticalSectionRawMutex, OpenMeteoResponse, 1> =
+    Channel::new(); // Channel used to deliver weather data to the display task
 
 mod tasks;
 
@@ -41,13 +41,14 @@ async fn main(spawner: Spawner) -> ! {
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0);
 
-    // ** SPAWN EMBASSY TASKS **
     // Spawn the deep sleep task
+    // receives SLEEP_CHANNEL messages
     spawner
         .spawn(tasks::sleep::deep_sleep_task(peripherals.LPWR))
         .expect("Failed to spawn deep sleep task");
 
     // Spawn the display task
+    // receives NETWORK_ERROR and DATA_CHANNEL messages
     spawner
         .spawn(tasks::display::display_task(
             tasks::display::DisplayResources {
@@ -64,7 +65,7 @@ async fn main(spawner: Spawner) -> ! {
         .expect("Failed to spawn display_task");
 
     // initialize wifi
-    // sends NETWORK_ERROR signal if initializing radio fails
+    // sends NETWORK_ERROR signal if initializing wifi fails
     let (controller, wifi_interface) =
         match tasks::network::init_radio(tasks::network::RadioResources {
             wifi: peripherals.WIFI,
@@ -83,6 +84,7 @@ async fn main(spawner: Spawner) -> ! {
         .expect("Failed to spawn wifi_task");
 
     // Initialize network stack
+    // sends NETWORK_ERROR signal if link-up, or acquire IP times out
     let (stack, runner) = tasks::network::init_network_stack(wifi_interface);
     spawner
         .spawn(tasks::network::net_runner_task(runner))
@@ -92,12 +94,13 @@ async fn main(spawner: Spawner) -> ! {
         .expect("Failed to spawn net_validator_task");
 
     // Spawn the weather fetcher
+    // sends WEATHER_CHANNEL on success NETWORK_ERROR on failure
     spawner
         .spawn(tasks::weather::weather_fetcher_task(stack))
         .expect("Failed to spawn weather_fetcher_task");
 
+    // yield to the executor
     loop {
-        // yield to the executor
         Timer::after(Duration::from_secs(60)).await;
     }
 }

@@ -209,10 +209,10 @@ sequenceDiagram
 ```
 
 **Legend**
-- `NETWORK_READY`: `Signal<()>` used by `net_validator_task` to notify `weather_fetcher_task`.
-- `WEATHER_CHANNEL`: `Channel<OpenMeteoResponse, 1>` used by `weather_fetcher_task` -> `display_task`.
-- `NETWORK_ERROR`: `Channel<heapless::String<128>, 1>` used to report link/IP/fetch errors to `display_task`.
-- `SLEEP_CHANNEL`: `Channel<CriticalSectionRawMutex, (u64, tasks::sleep::SleepReason), 1>` used to request deep sleep. Messages sent over this channel are a tuple `(sleep_seconds: u64, SleepReason)` where `SleepReason` is an enum with variants `Success`, `HardwareInitError`, `DisplayError`, and `NetworkError` (see `src/bin/tasks/sleep.rs`).
+- `NETWORK_READY`: `Signal<()>` used by `net_validator_task` to notify `weather_fetcher_task` to begin fetch request.
+- `NETWORK_ERROR`: `Signal<heapless::String<128>>` used to report link/IP/fetch errors to `display_task`.
+- `DATA_CHANNEL`: `Channel<OpenMeteoResponse, 1>` used by `weather_fetcher_task` -> `display_task`.
+- `SLEEP_REQUEST`: `Signal<(u64, tasks::sleep::SleepReason)>` used to request deep sleep on success or error used by `display_task` -> `deep_sleep_task` Messages sent over this channel are a tuple `(sleep_seconds: u64, SleepReason)` where `SleepReason` is an enum with variants `Success`, `HardwareInitError`, `DisplayError`, and `NetworkError` (see `src/bin/tasks/sleep.rs`).
 - `SLEEP_ON_SUCCESS_SECS` / `SLEEP_ON_ERROR_SECS`: `u64` constants in [src/config.rs](src/config.rs) that control the default sleep durations on successful update and error paths respectively.
 This diagram mirrors the code in `src/bin/main.rs` and the tasks in `src/bin/tasks/`.
 

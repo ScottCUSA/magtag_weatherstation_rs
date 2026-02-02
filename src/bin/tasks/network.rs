@@ -96,7 +96,7 @@ pub(crate) async fn net_validator_task(stack: embassy_net::Stack<'static>) {
         // Notify display about the network link failure
         let mut msg: String<128> = String::new();
         let _ = write!(msg, "Network link failed");
-        NETWORK_ERROR.send(msg).await;
+        NETWORK_ERROR.signal(msg);
         return;
     }
 
@@ -120,7 +120,7 @@ pub(crate) async fn net_validator_task(stack: embassy_net::Stack<'static>) {
         log::error!("Timed out waiting for IP address");
         let mut msg: String<128> = String::new();
         let _ = write!(msg, "Timed out waiting for IP address");
-        NETWORK_ERROR.send(msg).await;
+        NETWORK_ERROR.signal(msg);
     }
 }
 
@@ -139,7 +139,7 @@ pub(crate) fn init_radio(
                 let mut msg: String<128> = String::new();
                 let _ = write!(msg, "Failed to initialize radio: {:?}", e);
                 log::error!("{msg}");
-                let _ = NETWORK_ERROR.try_send(msg);
+                NETWORK_ERROR.signal(msg);
                 return Err(AppError::ConnectionFailed);
             }
         }
@@ -152,7 +152,7 @@ pub(crate) fn init_radio(
                 let mut msg: String<128> = String::new();
                 let _ = write!(msg, "Failed to initialize WiFi: {:?}", e);
                 log::error!("{msg}");
-                let _ = NETWORK_ERROR.try_send(msg);
+                NETWORK_ERROR.signal(msg);
                 return Err(AppError::ConnectionFailed);
             }
         };

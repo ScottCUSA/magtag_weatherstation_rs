@@ -5,7 +5,7 @@ use core::fmt::Write;
 use heapless::String;
 use magtag_weatherstation::{config::SLEEP_ON_ERROR_SECS, weather::fetch_weather};
 
-use crate::{NETWORK_ERROR, NETWORK_READY, WEATHER_CHANNEL};
+use crate::{DATA_CHANNEL, NETWORK_ERROR, NETWORK_READY};
 
 #[embassy_executor::task]
 pub(crate) async fn weather_fetcher_task(stack: Stack<'static>) {
@@ -17,7 +17,7 @@ pub(crate) async fn weather_fetcher_task(stack: Stack<'static>) {
     for attempt in 0..MAX_ATTEMPTS {
         match fetch_weather(stack).await {
             Ok(weather_data) => {
-                WEATHER_CHANNEL.send(weather_data).await;
+                DATA_CHANNEL.send(weather_data).await;
                 return;
             }
             Err(e) => {
@@ -26,7 +26,7 @@ pub(crate) async fn weather_fetcher_task(stack: Stack<'static>) {
                     let mut err_msg: String<128> = String::new();
                     let _ = write!(err_msg, "Failed to fetch weather: {:?}", e);
                     // notify display about network/fetch error
-                    NETWORK_ERROR.send(err_msg).await;
+                    NETWORK_ERROR.signal(err_msg);
                     return;
                 }
                 Timer::after(Duration::from_secs(SLEEP_ON_ERROR_SECS)).await;

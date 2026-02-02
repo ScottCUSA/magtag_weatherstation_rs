@@ -17,7 +17,7 @@ use magtag_weatherstation::{
 
 use esp_hal::gpio::AnyPin;
 
-use crate::{NETWORK_ERROR, SLEEP_CHANNEL, WEATHER_CHANNEL, tasks::sleep::SleepReason};
+use crate::{DATA_CHANNEL, NETWORK_ERROR, SLEEP_REQUEST, tasks::sleep::SleepReason};
 
 pub(crate) struct DisplayResources {
     pub sclk: AnyPin<'static>,
@@ -44,9 +44,7 @@ pub(crate) async fn display_task(resources: DisplayResources) {
             .with_mosi(resources.mosi),
         Err(e) => {
             log::error!("Failed to initialize SPI: {:?}", e);
-            SLEEP_CHANNEL
-                .send((SLEEP_ON_ERROR_SECS, SleepReason::HardwareInitError))
-                .await;
+            SLEEP_REQUEST.signal((SLEEP_ON_ERROR_SECS, SleepReason::HardwareInitError));
             return;
         }
     };
@@ -61,35 +59,27 @@ pub(crate) async fn display_task(resources: DisplayResources) {
             Ok(device) => device,
             Err(e) => {
                 log::error!("Failed to create SPI device: {:?}", e);
-                SLEEP_CHANNEL
-                    .send((SLEEP_ON_ERROR_SECS, SleepReason::HardwareInitError))
-                    .await;
+                SLEEP_REQUEST.signal((SLEEP_ON_ERROR_SECS, SleepReason::HardwareInitError));
                 return;
             }
         }
     );
 
     // Wait for either a network error or weather data concurrently.
-    match select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive()).await {
+    match select(NETWORK_ERROR.wait(), DATA_CHANNEL.receive()).await {
         Either::First(err_msg) => {
             display_error_text(&err_msg, spi_device, busy, dc, rst);
-            SLEEP_CHANNEL
-                .send((SLEEP_ON_ERROR_SECS, SleepReason::NetworkError))
-                .await;
+            SLEEP_REQUEST.signal((SLEEP_ON_ERROR_SECS, SleepReason::NetworkError));
         }
         Either::Second(weather_data) => {
             match display_weather(weather_data, spi_device, busy, dc, rst) {
                 Ok(_) => {
                     log::info!("Weather display successful, sleeping...");
-                    SLEEP_CHANNEL
-                        .send((SLEEP_ON_SUCCESS_SECS, SleepReason::Success))
-                        .await;
+                    SLEEP_REQUEST.signal((SLEEP_ON_SUCCESS_SECS, SleepReason::Success));
                 }
                 Err(e) => {
                     log::error!("Displaying weather failed: {:?}", e);
-                    SLEEP_CHANNEL
-                        .send((SLEEP_ON_ERROR_SECS, SleepReason::DisplayError))
-                        .await;
+                    SLEEP_REQUEST.signal((SLEEP_ON_ERROR_SECS, SleepReason::DisplayError));
                 }
             }
         }
