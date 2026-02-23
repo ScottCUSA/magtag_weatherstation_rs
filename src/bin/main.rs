@@ -14,13 +14,20 @@ use magtag_weatherstation::weather::model::OpenMeteoResponse;
 
 use crate::tasks::sleep::SleepReason;
 
+/// Signal used to notify sleep task of sleep request
 pub(crate) static SLEEP_REQUEST: Signal<CriticalSectionRawMutex, (u64, SleepReason)> =
-    Signal::new(); // Signal used to notify sleep task of sleep request
-pub(crate) static NETWORK_READY: Signal<CriticalSectionRawMutex, ()> = Signal::new(); // Signal used to notify the weather task to begin fetch
+    Signal::new();
+
+/// Signal used to notify the weather task to begin fetch
+pub(crate) static NETWORK_READY: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+
+/// Signal used to notify display task of network/fetch errors
 pub(crate) static NETWORK_ERROR: Signal<CriticalSectionRawMutex, heapless::String<128>> =
-    Signal::new(); // Signal used to notify display task of network/fetch errors
+    Signal::new();
+
+/// Channel used to deliver weather data to the display task
 pub(crate) static DATA_CHANNEL: Channel<CriticalSectionRawMutex, OpenMeteoResponse, 1> =
-    Channel::new(); // Channel used to deliver weather data to the display task
+    Channel::new();
 
 mod tasks;
 
@@ -28,7 +35,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
 
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
-    // Initialize logger
+    // Initialize logger (override with ESP_LOG=magtag_weatherstation=debug)
     init_logger_from_env();
     // 64KB heap for network stack, JSON parsing, and HTTP buffers
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64000);
@@ -102,6 +109,6 @@ async fn main(spawner: Spawner) -> ! {
 
     // yield to the executor
     loop {
-        Timer::after(Duration::from_secs(60)).await;
+        Timer::after_secs(1).await;
     }
 }

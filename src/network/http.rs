@@ -185,11 +185,11 @@ pub async fn http_get_raw(
         loop {
             match socket.read(&mut tmp).await {
                 Ok(0) => {
-                    log::info!("Received complete HTTP response");
+                    log::debug!("Received complete HTTP response");
                     break Ok(());
                 }
                 Ok(n) => {
-                    log::info!("Read {} bytes", n);
+                    log::debug!("Read {} bytes", n);
                     resp.extend_from_slice(&tmp[..n]);
                 }
                 Err(e) => {

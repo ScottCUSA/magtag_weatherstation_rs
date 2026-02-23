@@ -39,6 +39,8 @@ pub async fn fetch_weather(stack: embassy_net::Stack<'static>) -> Result<OpenMet
         AppError::from(e)
     })?;
 
+    log::debug!("{parsed:?}");
+
     Ok(parsed)
 }
 

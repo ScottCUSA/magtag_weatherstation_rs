@@ -297,13 +297,14 @@ where
 
 /// Map weather codes to icon indices in the sprite sheet (3x3 grid, row-major order)
 fn weather_code_to_icon_index(code: i32) -> i32 {
+    log::info!("weather code: {}", code);
     match code {
         0 => 0,                                               // sunny
-        1 => 1,                                               // partly sunny/cloudy
-        2 => 2,                                               // cloudy
-        3 => 3,                                               // very cloudy
+        1 => 1,                                               // mainly clear
+        2 => 2,                                               // partly sunny/cloudy
+        3 => 3,                                               // overcast
         61 | 63 | 65 => 4,                                    // rain
-        51 | 53 | 55 | 80 | 81 | 82 => 5,                     // showers
+        51 | 53 | 55 | 80 | 81 | 82 => 5,                     // drizzle
         95 | 96 | 99 => 6,                                    // storms
         56 | 57 | 66 | 67 | 71 | 73 | 75 | 77 | 85 | 86 => 7, // snow
         45 | 48 => 8,                                         // fog
