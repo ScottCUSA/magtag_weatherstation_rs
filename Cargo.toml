@@ -12,6 +12,14 @@ name = "magtag_weatherstation"
 path = "./src/bin/main.rs"
 test = false
 
+[features]
+# "display-ssd1680" targets the 2025 edition MagTag with the SSD1680 controller.
+# "display-il0373" targets the original MagTag with the IL0373 controller.
+# Exactly one must be enabled; enabling both or neither is a compile error.
+default = ["display-ssd1680"]
+display-ssd1680 = []
+display-il0373 = []
+
 [dependencies]
 # eps32 dependencies
 esp-hal = { version = "1.0.0", features = [
@@ -51,7 +59,7 @@ time = { version = "0.3.47", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }
 
 # display driver crate
-ssd1680 = { git = "https://github.com/ScottCUSA/ssd1680.git", branch = "main" }
+epd-datafuri = "0.1.1"
 
 # JSON parsing in no_std
 serde = { version = "1.0.228", features = [
@@ -63,7 +71,7 @@ serde-json-core = "0.6"
 # drawing handled by embedded-graphics (wrapping, alignment, textbox)
 embedded-graphics = "0.8.2"
 embedded-text = "0.7.3"
-once_cell = { version = "1.21.3", features = [
+once_cell = { version = "1.21.4", features = [
   "critical-section",
 ], default-features = false }
 

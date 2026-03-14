@@ -5,8 +5,22 @@ use esp_hal::{
     gpio::{Input, Output},
     spi::master::Spi,
 };
-use ssd1680::displays::adafruit_thinkink_2in9::{Display2in9Gray2, ThinkInk2in9Gray2};
-use ssd1680::prelude::*;
+
+#[cfg(all(feature = "display-ssd1680", feature = "display-il0373"))]
+compile_error!(
+    "Features \"display-ssd1680\" and \"display-il0373\" are mutually exclusive. Enable only one."
+);
+
+#[cfg(not(any(feature = "display-ssd1680", feature = "display-il0373")))]
+compile_error!("One of \"display-ssd1680\" or \"display-il0373\" must be enabled.");
+
+#[cfg(feature = "display-ssd1680")]
+use epd_datafuri::displays::adafruit_thinkink_290_mfgn::{Display2in9Gray2, ThinkInk2in9Gray2};
+
+#[cfg(feature = "display-il0373")]
+use epd_datafuri::displays::adafruit_thinkink_290_t5::{Display2in9Gray2, ThinkInk2in9Gray2};
+
+use epd_datafuri::prelude::*;
 
 use crate::{
     error::{AppError, Result},

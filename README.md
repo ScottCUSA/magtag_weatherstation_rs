@@ -1,10 +1,10 @@
 # MagTag Weather Station
 
-A `no_std` Rust firmware for the 2025 revision of the [Adafruit MagTag](https://www.adafruit.com/product/4800) with the SSD1680 controller. It displays weather information on the e-paper display. Built with the `esp-hal` ecosystem for ESP32-S2, this project demonstrates async/await patterns with Embassy, network connectivity with `esp-radio`, and e-paper graphics rendering.
+A `no_std` Rust firmware for the [Adafruit MagTag](https://www.adafruit.com/product/4800) (ESP32-S2). It displays weather information on the e-paper display. Supports both the 2025 edition (SSD1680 controller) and the original MagTag (IL0373 controller) via Cargo feature flags. Built with the `esp-hal` ecosystem for ESP32-S2, this project demonstrates async/await patterns with Embassy, network connectivity with `esp-radio`, and e-paper graphics rendering.
 
 ## Features
 
-- **E-Paper Display**: Drives the SSD1680 2.9" grayscale e-paper display (296x128 pixels) over SPI
+- **E-Paper Display**: Drives a 2.9" grayscale e-paper display (296x128 pixels) over SPI, supporting SSD1680 (2025 edition) and IL0373 (original) controllers via feature flags
 - **WiFi Connectivity**: Connects to WiFi using `esp-radio` and `embassy-net` with async networking
 - **Weather Data**: Fetches weather forecasts from the [Open-Meteo API](https://open-meteo.com/)
 - **Graphical UI**: Renders weather data with icons, text, and formatting using `embedded-graphics` and `embedded-text`
@@ -18,7 +18,9 @@ This project was inspired by Adafruit's [MagTag Weather Example](https://learn.a
 
 ## Hardware Requirements
 
-- [Adafruit MagTag](https://www.adafruit.com/product/4800) - 2025 Edition with SSD1680 (ESP32-S2 based e-paper display) 
+- [Adafruit MagTag](https://www.adafruit.com/product/4800) (ESP32-S2 based e-paper display board), either:
+  - **2025 Edition** with SSD1680 controller (default)
+  - **Original edition** with IL0373 controller (use `--features display-il0373`)
 - USB cable for programming and power
 - Optional: USB-to-serial adapter for debugging (see Serial Logging section)
 
@@ -43,10 +45,10 @@ This project was inspired by Adafruit's [MagTag Weather Example](https://learn.a
 
 Edit [src/config.rs](src/config.rs) to customize:
 
-- `OPENMETEO_LATITUDE` / `OPENMETEO_LONGITUDE` — Your location coordinates
-- `OPENMETEO_TIMEZONE` — Your timezone (e.g., "America/Denver")
-- `TEMPERATURE_UNIT` — "fahrenheit" or "celsius"
-- `WIND_SPEED_UNIT` — "mph" or "kmh"
+- `OPENMETEO_LATITUDE` / `OPENMETEO_LONGITUDE`: Your location coordinates
+- `OPENMETEO_TIMEZONE`: Your timezone (e.g., "America/Denver")
+- `TEMPERATURE_UNIT`: "fahrenheit" or "celsius"
+- `WIND_SPEED_UNIT`: "mph" or "kmh"
 
 WiFi credentials are read from environment variables at compile time:
 - `WIFI_SSID` from `$SSID`
@@ -80,12 +82,14 @@ src/
 
 ## Building
 
+Select your target hardware using Cargo feature flags. Exactly one display feature must be enabled; enabling both or neither is a compile error. The default is `display-ssd1680`.
+
 ```bash
-# Build release firmware (optimized for size and speed)
+# 2025 edition MagTag (SSD1680, default)
 cargo build --release
 
-# Build debug firmware (faster compilation, larger binary)
-cargo build
+# Original MagTag (IL0373)
+cargo build --release --no-default-features --features display-il0373
 ```
 
 The project uses LTO and size optimization (`opt-level = 's'`) for release builds.
@@ -95,8 +99,11 @@ The project uses LTO and size optimization (`opt-level = 's'`) for release build
 The project is configured to use `espflash` as the default runner:
 
 ```bash
-# Build and flash in one command
+# Build and flash in one command (SSD1680, default)
 cargo run --release
+
+# Build and flash for original MagTag (IL0373)
+cargo run --release --no-default-features --features display-il0373
 
 # Or flash a pre-built binary
 espflash flash --monitor --chip esp32s2 target/xtensa-esp32s2-none-elf/release/magtag_weatherstation
@@ -125,14 +132,14 @@ The firmware outputs log messages via UART at 115200 baud using the `log` facade
 
 Key dependencies include:
 
-- **esp-hal** (1.0.0) — Hardware abstraction layer for ESP32-S2
-- **esp-rtos** (0.2.0) — RTOS integration with Embassy executor
-- **esp-radio** (0.17.0) — WiFi radio driver
-- **embassy-net** — Async TCP/IP networking stack
-- **ssd1680** — E-paper display driver (custom fork)
-- **embedded-graphics** — 2D graphics library
-- **serde** / **serde-json-core** — JSON parsing in `no_std`
-- **heapless** — Stack-allocated collections
+- **esp-hal** (1.0.0): Hardware abstraction layer for ESP32-S2
+- **esp-rtos** (0.2.0): RTOS integration with Embassy executor
+- **esp-radio** (0.17.0): WiFi radio driver
+- **embassy-net**: Async TCP/IP networking stack
+- **ssd1680**: E-paper display driver (supports SSD1680 and IL0373 controllers)
+- **embedded-graphics**: 2D graphics library
+- **serde** / **serde-json-core**: JSON parsing in `no_std`
+- **heapless**: Stack-allocated collections
 
 ## Troubleshooting
 
@@ -151,7 +158,7 @@ Key dependencies include:
 ### Display Issues
 
 - Ensure SPI pins are correctly connected
-- Check that the display driver is compatible with your MagTag hardware revision
+- Verify you are using the correct feature flag for your hardware revision (`display-ssd1680` for 2025 edition, `display-il0373` for the original)
 - Look for error messages on the display itself
 
 ## Architecture

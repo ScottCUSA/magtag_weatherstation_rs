@@ -583,6 +583,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "epd-datafuri"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e4110995a08f81eaec2ded3046925bc6e33bcb851f6f8f7a3dcb113bd4ac6ec"
+dependencies = [
+ "display-interface",
+ "embedded-graphics",
+ "embedded-hal 1.0.0",
+ "log",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1170,6 +1182,7 @@ dependencies = [
  "embedded-hal-bus",
  "embedded-io-async 0.7.0",
  "embedded-text",
+ "epd-datafuri",
  "esp-alloc",
  "esp-backtrace",
  "esp-bootloader-esp-idf",
@@ -1183,7 +1196,6 @@ dependencies = [
  "percent-encoding",
  "serde",
  "serde-json-core",
- "ssd1680",
  "static_cell",
  "thiserror",
  "time",
@@ -1265,9 +1277,9 @@ checksum = "41af26158b0f5530f7b79955006c2727cd23d0d8e7c3109dc316db0a919784dd"
 
 [[package]]
 name = "once_cell"
-version = "1.21.3"
+version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
+checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 dependencies = [
  "critical-section",
  "portable-atomic",
@@ -1554,17 +1566,6 @@ name = "somni-parser"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0f368519fc6c85fc1afdb769fb5a51123f6158013e143656e25a3485a0d401c"
-
-[[package]]
-name = "ssd1680"
-version = "0.2.0"
-source = "git+https://github.com/ScottCUSA/ssd1680.git?branch=main#f19f1e3d79f36f68cf5d3c44695db73a9917c1b1"
-dependencies = [
- "display-interface",
- "embedded-graphics",
- "embedded-hal 1.0.0",
- "log",
-]
 
 [[package]]
 name = "stable_deref_trait"
