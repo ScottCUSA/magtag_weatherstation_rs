@@ -49,42 +49,17 @@ Edit [src/config.rs](src/config.rs) to customize:
 
 - `OPENMETEO_LATITUDE` / `OPENMETEO_LONGITUDE`: Your location coordinates
 - `OPENMETEO_TIMEZONE`: Your timezone (e.g., "America/Denver")
-- `TEMPERATURE_UNIT`: "fahrenheit" or "celsius"
-- `WIND_SPEED_UNIT`: "mph" or "kmh"
+- `OPENMETEO_TEMP_UNIT`: "fahrenheit" or "celsius"
+- `OPENMETEO_WIND_UNIT`: "mph" or "kmh"
 
 WiFi credentials are read from environment variables at compile time:
 - `WIFI_SSID` from `$SSID`
 - `WIFI_PASSWORD` from `$PASSWORD`
 
-## Project Structure
-
-```
-src/
-├── bin/
-│   ├── main.rs
-│   └── tasks/
-│       ├── display.rs
-│       ├── network.rs
-│       ├── sleep.rs
-│       └── weather.rs
-├── config.rs
-├── display.rs
-├── error.rs
-├── graphics.rs
-├── lib.rs
-├── network/
-│   ├── mod.rs
-│   └── http.rs
-├── time.rs
-└── weather/
-    ├── api.rs
-    ├── model.rs
-    └── ui.rs
-```
 
 ## Building
 
-Select your target hardware using Cargo feature flags. Exactly one display feature must be enabled; enabling both or neither is a compile error. The default is `display-ssd1680`.
+Select your target hardware using Cargo feature flags. The default is `display-ssd1680` (2025 edition MagTag). Exactly one display feature must be enabled; enabling both or neither is a compile error. 
 
 ```bash
 # 2025 edition MagTag (SSD1680, default)
@@ -93,8 +68,6 @@ cargo build --release
 # Original MagTag (IL0373)
 cargo build --release --no-default-features --features display-il0373
 ```
-
-The project uses LTO and size optimization (`opt-level = 's'`) for release builds.
 
 ## Flashing
 
@@ -124,9 +97,9 @@ espflash flash --monitor --chip esp32s2 target/xtensa-esp32s2-none-elf/release/m
 
 The firmware outputs log messages via UART at 115200 baud using the `log` facade and `esp-println`.
 
-**Important**: The MagTag's USB port does **not** expose serial output. To view logs, you must:
+**Important**: The `esp-println` crate does not support using the MagTag's USB interface for serial output. To view logs, you must:
 
-1. Connect a USB-to-serial adapter to the UART pins on the back of the MagTag
+1. Connect a USB-to-serial adapter to the RX/TX pins on the back of the MagTag
 2. Open a serial terminal at 115200 baud
 3. Logs are controlled by the `ESP_LOG` environment variable (set in `.cargo/config.toml`)
 
@@ -154,76 +127,11 @@ Key dependencies include:
 ### Network Issues
 
 - Verify WiFi credentials in environment variables
-- Check that your router supports 2.4GHz (ESP32-S2 doesn't support 5GHz)
 - Monitor serial output to see connection status
-
-### Display Issues
-
-- Ensure SPI pins are correctly connected
-- Verify you are using the correct feature flag for your hardware revision (`display-ssd1680` for 2025 edition, `display-il0373` for the original)
 - Look for error messages on the display itself
 
-## Architecture
-These diagrams are derived from `src/bin/main.rs` and the tasks in `src/bin/tasks/`.
-
-This diagram shows what `main` spawns during initialization (no runtime messaging).
-
-```mermaid
-sequenceDiagram
-   participant Main as main (bin/main.rs)
-   participant Executor as Embassy Executor / Spawner
-
-   Main->>Executor: spawner.spawn(sleep::deep_sleep_task(rtc))
-   Main->>Executor: spawner.spawn(display::display_task(DisplayResources))
-   Main->>Executor: spawner.spawn(network::wifi_task(controller))
-   Main->>Executor: spawner.spawn(network::net_runner_task(runner))
-   Main->>Executor: spawner.spawn(network::net_validator_task(stack))
-   Main->>Executor: spawner.spawn(weather::weather_fetcher_task(stack))
-```
-
-High-level runtime message flow (channels/signals used by tasks):
-```mermaid
-sequenceDiagram
-   participant Display as display::display_task
-   participant NetValidator as network::net_validator_task
-   participant Weather as weather::weather_fetcher_task
-   participant Sleep as sleep::deep_sleep_task
-
-   Sleep->>Sleep: receive SLEEP_CHANNEL (sleep_seconds, reason)
-   Display->>Display: select(NETWORK_ERROR.receive(), WEATHER_CHANNEL.receive())
-
-   NetValidator->>NetValidator: wait for link and IP
-   alt IP acquired
-      NetValidator->>Weather: NETWORK_READY.signal(())
-   else Link or IP timeout/failure
-      NetValidator->>Display: NETWORK_ERROR.send(msg)
-   end
-
-   Weather->>Weather: fetch_weather (await NETWORK_READY)
-   alt Fetch success
-      Weather->>Display: WEATHER_CHANNEL.send(OpenMeteoResponse)
-   else Fetch failure (after retries)
-      Weather->>Display: NETWORK_ERROR.send(msg)
-   end
-   
-   alt Received NETWORK_ERROR
-      Display->>Display: display_error_text(...)
-      Display->>Sleep: send SLEEP_CHANNEL (SLEEP_ON_ERROR_SECS, SleepReason::NetworkError)
-   else Received WEATHER_CHANNEL data
-      Display->>Display: display_weather(...)
-      Display->>Sleep: send SLEEP_CHANNEL (SLEEP_ON_SUCCESS_SECS, SleepReason::Success)
-   end
-   
-   Sleep->>Sleep: configure timer wakeup and enter deep sleep (rtc.sleep_deep)
-```
-
-**Legend**
-- `NETWORK_READY`: `Signal<()>` used by `net_validator_task` to notify `weather_fetcher_task` to begin fetch request.
-- `NETWORK_ERROR`: `Signal<heapless::String<128>>` used to report link/IP/fetch errors to `display_task`.
-- `DATA_CHANNEL`: `Channel<OpenMeteoResponse, 1>` used by `weather_fetcher_task` -> `display_task`.
-- `SLEEP_REQUEST`: `Signal<(u64, tasks::sleep::SleepReason)>` used to request deep sleep on success or error used by `display_task` -> `deep_sleep_task` Messages sent over this channel are a tuple `(sleep_seconds: u64, SleepReason)` where `SleepReason` is an enum with variants `Success`, `HardwareInitError`, `DisplayError`, and `NetworkError` (see `src/bin/tasks/sleep.rs`).
-- `SLEEP_ON_SUCCESS_SECS` / `SLEEP_ON_ERROR_SECS`: `u64` constants in [src/config.rs](src/config.rs) that control the default sleep durations on successful update and error paths respectively.
-This diagram mirrors the code in `src/bin/main.rs` and the tasks in `src/bin/tasks/`.
+### Display Issues
+- Verify you are using the correct feature flag for your hardware revision (`display-ssd1680` for 2025 edition, `display-il0373` for the original)
 
 ## Contributing
 
