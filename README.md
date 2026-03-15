@@ -1,5 +1,7 @@
 # MagTag Weather Station
 
+<img src="resources/magtag_weatherstation.jpeg" width="600">
+
 A `no_std` Rust firmware for the [Adafruit MagTag](https://www.adafruit.com/product/4800) (ESP32-S2). It displays weather information on the e-paper display. Supports both the 2025 edition (SSD1680 controller) and the original MagTag (IL0373 controller) via Cargo feature flags. Built with the `esp-hal` ecosystem for ESP32-S2, this project demonstrates async/await patterns with Embassy, network connectivity with `esp-radio`, and e-paper graphics rendering.
 
 ## Features
