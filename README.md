@@ -29,7 +29,7 @@ This project was inspired by Adafruit's [MagTag Weather Example](https://learn.a
 ## Software Prerequisites
 
 1. **Rust Toolchain**: Install Rust with the Espressif Xtensa toolchain
-   - Follow the [esp-rs Getting Started guide](https://docs.esp-rs.org/book/installation/index.html)
+   - Follow the [Espressif Getting Started guide](https://docs.espressif.com/projects/rust/book/getting-started/toolchain.html)
    - Requires the `xtensa-esp32s2-none-elf` target
 
 2. **Flashing Tool**: Install `espflash`
@@ -39,23 +39,22 @@ This project was inspired by Adafruit's [MagTag Weather Example](https://learn.a
 
 3. **Environment Variables**: Set WiFi credentials as environment variables
    ```bash
-   export SSID="YourNetworkName"
-   export PASSWORD="YourNetworkPassword"
+   export WIFI_SSID="YourNetworkName"
+   export WIFI_PASSWORD="YourNetworkPassword"
    ```
 
 ## Configuration
 
 Edit [src/config.rs](src/config.rs) to customize:
 
-- `OPENMETEO_LATITUDE` / `OPENMETEO_LONGITUDE`: Your location coordinates
-- `OPENMETEO_TIMEZONE`: Your timezone (e.g., "America/Denver")
-- `OPENMETEO_TEMP_UNIT`: "fahrenheit" or "celsius"
-- `OPENMETEO_WIND_UNIT`: "mph" or "kmh"
+- `OPENMETEO_LATITUDE` / `OPENMETEO_LONGITUDE`: Decimal coordinates used for forecast (e.g., `"35.0"` / `"-100.0"`)
+- `OPENMETEO_TIMEZONE`: IANA timezone name for your location (e.g., `"America/Denver"`)
+- `OPENMETEO_TEMP_UNIT`: `"fahrenheit"` or `"celsius"`
+- `OPENMETEO_WIND_UNIT`: `"mph"` or `"kmh"`
 
 WiFi credentials are read from environment variables at compile time:
-- `WIFI_SSID` from `$SSID`
-- `WIFI_PASSWORD` from `$PASSWORD`
-
+- `$WIFI_SSID`: The name of your WiFi network
+- `$WIFI_PASSWORD`: The passphrase for your WiFi network
 
 ## Building
 
@@ -107,12 +106,14 @@ The firmware outputs log messages via UART at 115200 baud using the `log` facade
 
 Key dependencies include:
 
+- **epd-datafuri**: E-paper display driver (supports SSD1680 and IL0373 controllers)
 - **esp-hal** (1.0.0): Hardware abstraction layer for ESP32-S2
-- **esp-rtos** (0.2.0): RTOS integration with Embassy executor
-- **esp-radio** (0.17.0): WiFi radio driver
+- **esp-rtos**: RTOS integration with Embassy executor
+- **esp-radio**: WiFi radio driver
 - **embassy-net**: Async TCP/IP networking stack
-- **ssd1680**: E-paper display driver (supports SSD1680 and IL0373 controllers)
+- **embassy-executor**: Async task executor
 - **embedded-graphics**: 2D graphics library
+- **embedded-text**: Text rendering for embedded systems
 - **serde** / **serde-json-core**: JSON parsing in `no_std`
 - **heapless**: Stack-allocated collections
 
@@ -120,7 +121,7 @@ Key dependencies include:
 
 ### Build Errors
 
-- Ensure `SSID` and `PASSWORD` environment variables are set
+- Ensure `WIFI_SSID` and `WIFI_PASSWORD` environment variables are set
 - Verify Xtensa Rust toolchain is installed: `rustup target list | grep xtensa`
 - Check that `espflash` is in your PATH: `espflash --version`
 

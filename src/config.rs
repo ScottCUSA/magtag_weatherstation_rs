@@ -3,8 +3,8 @@ pub const NETWORK_LINK_TIMEOUT_SECS: u64 = 10;
 pub const NETWORK_IP_TIMEOUT_SECS: u64 = 20;
 
 // Wifi credentials
-pub const WIFI_SSID: &str = env!("SSID");
-pub const WIFI_PASSWORD: &str = env!("PASSWORD");
+pub const WIFI_SSID: &str = env!("WIFI_SSID");
+pub const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
 
 // Open-Meteo API weather arguments
 pub const OPENMETEO_LATITUDE: &str = "39.868";
