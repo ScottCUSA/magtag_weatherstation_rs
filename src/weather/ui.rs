@@ -12,7 +12,7 @@ use once_cell::sync::Lazy;
 use crate::{
     error::Result,
     graphics::{draw_binary_color_image, draw_image, draw_text, draw_text_xy_wh},
-    time::{format_date, iso_8601_hh_mm, short_day_of_week_sakamoto},
+    time::{format_date_unix, short_dow_unix, unix_hh_mm},
     weather::model::OpenMeteoResponse,
 };
 
@@ -48,7 +48,12 @@ where
 {
     draw_background_image(buffer)?;
     draw_today_weather_icon(*weather_data.daily.weather_code.first().unwrap(), buffer)?;
-    draw_today_date(weather_data.daily.time.first().unwrap(), buffer)?;
+    let today_date = format_date_unix(
+        *weather_data.daily.time.first().unwrap(),
+        weather_data.utc_offset_seconds,
+    )
+    .unwrap();
+    draw_today_date(&today_date, buffer)?;
     draw_today_lat_long(weather_data.latitude, weather_data.longitude, buffer)?;
     draw_today_high_low(
         *weather_data.daily.temperature_2m_max.first().unwrap(),
@@ -71,11 +76,17 @@ where
         weather_data.daily_units.wind_speed_10m_max.as_str(),
         buffer,
     )?;
-    draw_today_sunrise_sunset(
-        weather_data.daily.sunrise.first().unwrap(),
-        weather_data.daily.sunset.first().unwrap(),
-        buffer,
-    )?;
+    let sunrise_time = unix_hh_mm(
+        *weather_data.daily.sunrise.first().unwrap(),
+        weather_data.utc_offset_seconds,
+    )
+    .unwrap();
+    let sunset_time = unix_hh_mm(
+        *weather_data.daily.sunset.first().unwrap(),
+        weather_data.utc_offset_seconds,
+    )
+    .unwrap();
+    draw_today_sunrise_sunset(&sunrise_time, &sunset_time, buffer)?;
     draw_future_weather_view(weather_data, buffer)
 }
 
@@ -85,10 +96,7 @@ where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
-    // Draw Today's Date
-    // need to convert the ISO 8601 time stamp to a nice string
-    let date = format_date(date).unwrap();
-    draw_text_xy_wh(&date, 8, 16, 296, 0, buffer)?;
+    draw_text_xy_wh(date, 8, 16, 296, 0, buffer)?;
 
     log::info!("Today's date drawn successfully");
     Ok(())
@@ -164,14 +172,10 @@ where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
 {
-    // Draw sunrise
-    let time = iso_8601_hh_mm(sunrise).unwrap();
-    draw_text_xy_wh(time, 30, 113, 296, 0, buffer)?;
+    draw_text_xy_wh(sunrise, 30, 113, 296, 0, buffer)?;
     log::info!("Sunrise drawn successfully");
 
-    // Draw sunset
-    let time = iso_8601_hh_mm(sunset).unwrap();
-    draw_text_xy_wh(time, 115, 113, 296, 0, buffer)?;
+    draw_text_xy_wh(sunset, 115, 113, 296, 0, buffer)?;
     log::info!("Sunset drawn successfully");
     Ok(())
 }
@@ -197,11 +201,8 @@ where
         let start_point = Point::new(191, 15 + ((i as i32 - 1) * 18));
 
         // day of week
-        let date = weather_data.daily.time.get(i).unwrap();
-        let y = date[0..4].parse().unwrap();
-        let m = date[5..7].parse().unwrap();
-        let d = date[8..10].parse().unwrap();
-        let dow = short_day_of_week_sakamoto(y, m, d).unwrap();
+        let ts = *weather_data.daily.time.get(i).unwrap();
+        let dow = short_dow_unix(ts, weather_data.utc_offset_seconds).unwrap();
         draw_text(
             dow,
             start_point + Point::new(0, 5),

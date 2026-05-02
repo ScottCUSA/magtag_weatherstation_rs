@@ -3,7 +3,7 @@ use embassy_time::{Duration, Timer};
 
 use core::fmt::Write;
 use heapless::String;
-use magtag_weatherstation::{config::SLEEP_ON_ERROR_SECS, weather::fetch_weather};
+use magtag_weatherstation::{config::SLEEP_ON_ERROR_SECS, weather::api::fetch_weather};
 
 use crate::{DATA_CHANNEL, NETWORK_ERROR, NETWORK_READY};
 

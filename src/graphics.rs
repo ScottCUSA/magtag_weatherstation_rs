@@ -26,7 +26,14 @@ pub static CHARACTER_STYLE: Lazy<MonoTextStyle<Gray2>> = Lazy::new(|| {
 /// Draw `text` inside a rectangle at `(x,y)` with width `w` and height `h` on `buffer` using the module text style.
 ///
 /// Returns `Ok(())` on success or `AppError::GraphicsError` on failure.
-pub fn draw_text_xy_wh<D>(text: &str, x: i32, y: i32, w: u32, h: u32, buffer: &mut D) -> Result<()>
+pub(crate) fn draw_text_xy_wh<D>(
+    text: &str,
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+    buffer: &mut D,
+) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -37,7 +44,7 @@ where
 /// Draw `text` inside a rectangle at `top_left` with `size` on `buffer` using the module text style.
 ///
 /// Returns `Ok(())` on success or `AppError::GraphicsError` on failure.
-pub fn draw_text<D>(text: &str, top_left: Point, size: Size, buffer: &mut D) -> Result<()>
+pub(crate) fn draw_text<D>(text: &str, top_left: Point, size: Size, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
@@ -61,7 +68,7 @@ where
 /// Draw a Gray2 `image` at `position` onto `buffer`.
 ///
 /// Returns `Ok(())` on success or `AppError::GraphicsError` on failure.
-pub fn draw_image<T, D>(image: &T, position: Point, buffer: &mut D) -> Result<()>
+pub(crate) fn draw_image<T, D>(image: &T, position: Point, buffer: &mut D) -> Result<()>
 where
     T: ImageDrawable<Color = Gray2>,
     D: DrawTarget<Color = Gray2>,
@@ -76,7 +83,11 @@ where
 /// Draw a `BinaryColor` image at `position` onto `buffer`, converting to `Gray2`.
 ///
 /// Useful for drawing 1-bit images on a Gray2 target. Returns `Ok(())` or `AppError::GraphicsError`.
-pub fn draw_binary_color_image<T, D>(image: &T, position: Point, buffer: &mut D) -> Result<()>
+pub(crate) fn draw_binary_color_image<T, D>(
+    image: &T,
+    position: Point,
+    buffer: &mut D,
+) -> Result<()>
 where
     T: ImageDrawable<Color = BinaryColor>,
     D: DrawTarget<Color = Gray2> + OriginDimensions,

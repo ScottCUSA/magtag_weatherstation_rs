@@ -53,19 +53,37 @@ pub struct OpenMeteoResponse {
     pub timezone: String<BUF_LEN>,
     pub timezone_abbreviation: String<TZ_ABBR_LEN>,
     pub elevation: f32,
+    pub current_units: CurrentUnits,
+    pub current: Current,
     pub daily_units: DailyUnits,
     pub daily: Daily,
+}
+
+/// Current weather data struct
+#[derive(Deserialize, Debug)]
+pub struct Current {
+    pub time: i64,
+    pub interval: i32,
+    pub temperature_2m: f32,
+}
+
+/// Current units struct
+#[derive(Deserialize, Debug)]
+pub struct CurrentUnits {
+    pub time: String<BUF_LEN>,
+    pub interval: String<BUF_LEN>,
+    pub temperature_2m: String<BUF_LEN>,
 }
 
 /// Daily weather data struct
 #[derive(Deserialize, Debug)]
 pub struct Daily {
-    pub time: Vec<String<BUF_LEN>, MAX_DAYS>,
+    pub time: Vec<i64, MAX_DAYS>,
     pub weather_code: Vec<i32, MAX_DAYS>,
     pub temperature_2m_max: Vec<f32, MAX_DAYS>,
     pub temperature_2m_min: Vec<f32, MAX_DAYS>,
-    pub sunrise: Vec<String<BUF_LEN>, MAX_DAYS>,
-    pub sunset: Vec<String<BUF_LEN>, MAX_DAYS>,
+    pub sunrise: Vec<i64, MAX_DAYS>,
+    pub sunset: Vec<i64, MAX_DAYS>,
     pub wind_speed_10m_max: Vec<f32, MAX_DAYS>,
     pub wind_direction_10m_dominant: Vec<i32, MAX_DAYS>,
 }

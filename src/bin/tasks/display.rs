@@ -10,9 +10,10 @@ use esp_hal::{
     time::Rate,
 };
 use magtag_weatherstation::{
-    config::{SLEEP_ON_ERROR_SECS, SLEEP_ON_SUCCESS_SECS},
+    config::SLEEP_ON_ERROR_SECS,
     display::{display_error_text, display_weather},
     mk_static,
+    time::secs_until_6am,
 };
 
 use esp_hal::gpio::AnyPin;
@@ -72,10 +73,13 @@ pub(crate) async fn display_task(resources: DisplayResources) {
             SLEEP_REQUEST.signal((SLEEP_ON_ERROR_SECS, SleepReason::NetworkError));
         }
         Either::Second(weather_data) => {
+            let sleep_secs =
+                secs_until_6am(weather_data.current.time, weather_data.utc_offset_seconds);
+
             match display_weather(weather_data, spi_device, busy, dc, rst) {
                 Ok(_) => {
                     log::info!("Weather display successful, sleeping...");
-                    SLEEP_REQUEST.signal((SLEEP_ON_SUCCESS_SECS, SleepReason::Success));
+                    SLEEP_REQUEST.signal((sleep_secs, SleepReason::Success));
                 }
                 Err(e) => {
                     log::error!("Displaying weather failed: {:?}", e);

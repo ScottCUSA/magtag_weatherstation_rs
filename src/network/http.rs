@@ -40,7 +40,7 @@ const QUERY_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}')
     .add(b'~');
 
-pub fn url_encode_component(component: &str) -> Result<String> {
+pub(crate) fn url_encode_component(component: &str) -> Result<String> {
     let mut buf = String::new();
     write!(buf, "{}", utf8_percent_encode(component, QUERY_ENCODE_SET))
         .map_err(|_| AppError::Other)?;
@@ -76,7 +76,7 @@ impl Method {
 }
 
 /// Returns a heapless string containing the full HTTP/1.0 request (headers + body).
-pub fn build_http_request(
+pub(crate) fn build_http_request(
     method: Method,
     target: &str,
     host: &str,
@@ -113,7 +113,7 @@ pub fn build_http_request(
 /// sending the request, and reading the response into a fixed-size buffer.
 ///
 /// Returns a buffer containing the raw HTTP response (headers + body).
-pub async fn http_get_raw(
+pub(crate) async fn http_get_raw(
     stack: embassy_net::Stack<'static>,
     host: &str,
     target: &str,
@@ -213,7 +213,7 @@ pub async fn http_get_raw(
 }
 
 /// Extracts the body from a raw HTTP response buffer
-pub fn extract_body(buf: &[u8]) -> &[u8] {
+pub(crate) fn extract_body(buf: &[u8]) -> &[u8] {
     // Find where JSON starts (after HTTP headers or at first JSON character)
     let start = buf
         .windows(4)

@@ -25,7 +25,7 @@ use epd_datafuri::prelude::*;
 use crate::{
     error::{AppError, Result},
     graphics::draw_text_xy_wh,
-    weather::{draw_weather_station_view, model::OpenMeteoResponse},
+    weather::{model::OpenMeteoResponse, ui::draw_weather_station_view},
 };
 
 pub fn display_weather(
@@ -51,7 +51,7 @@ pub fn display_weather(
     display_buffer(&display, spi_device, busy, dc, rst)
 }
 
-pub fn display_text(
+pub(crate) fn display_text(
     text: &str,
     spi_device: &'static mut ExclusiveDevice<
         Spi<'static, esp_hal::Blocking>,

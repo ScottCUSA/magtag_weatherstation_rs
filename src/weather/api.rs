@@ -13,6 +13,7 @@ use crate::{
 use alloc::{string::String, vec::Vec};
 
 const DAILY_FIELDS: &str = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant";
+const CURRENT_FIELDS: &str = "temperature_2m";
 const HEADERS_STR: &str = "Accept: application/json";
 pub const OPEN_METEO_URL: &str = "api.open-meteo.com";
 
@@ -83,8 +84,8 @@ fn build_open_meteo_query(
     let mut query: String = String::new();
     write!(
         query,
-        "/v1/forecast?latitude={}&longitude={}&daily={}&timezone={}&temperature_unit={}&wind_speed_unit={}",
-        lat_enc, long_enc, DAILY_FIELDS, tz_enc, temp_unit_enc, windspeed_unit_enc
+        "/v1/forecast?latitude={}&longitude={}&daily={}&current={}&timezone={}&temperature_unit={}&wind_speed_unit={}&timeformat=unixtime",
+        lat_enc, long_enc, DAILY_FIELDS, CURRENT_FIELDS, tz_enc, temp_unit_enc, windspeed_unit_enc
     )
     .map_err(|_| AppError::HttpRequestFailed)?;
     Ok(query)
