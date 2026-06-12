@@ -15,7 +15,6 @@ pub const OPENMETEO_WIND_UNIT: &str = "mph"; // mph, kmh
 
 // deep sleep constants
 pub const SLEEP_ON_ERROR_SECS: u64 = 60 * 5;
-pub const SLEEP_ON_SUCCESS_SECS: u64 = 60 * 60 * 24;
 
 // network constants:
 

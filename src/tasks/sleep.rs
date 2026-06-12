@@ -17,14 +17,9 @@ pub(crate) enum SleepReason {
 
 #[embassy_executor::task]
 pub(crate) async fn deep_sleep_task(lpwr: LPWR<'static>) {
-    // Initialize RTC for deep sleep
     let mut rtc = Rtc::new(lpwr);
-
-    // Wait until sleep request is received
     let (sleep_seconds, reason) = SLEEP_REQUEST.wait().await;
     log::info!("Received sleep request for {sleep_seconds} seconds. reason: {reason:?}");
-    // Configure timer wakeup source
     let timer = TimerWakeupSource::new(Duration::from_secs(sleep_seconds));
-    // Enter deep sleep - this will not return, device will reset on wake
     rtc.sleep_deep(&[&timer]);
 }

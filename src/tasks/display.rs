@@ -2,23 +2,21 @@ use embassy_futures::select::{Either, select};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use esp_hal::{
     delay::Delay,
-    gpio::{Input, InputConfig, Level, Output, OutputConfig},
+    gpio::{AnyPin, Input, InputConfig, Level, Output, OutputConfig},
     spi::{
         self,
         master::{AnySpi, Spi},
     },
     time::Rate,
 };
-use magtag_weatherstation::{
+
+use crate::{
+    DATA_CHANNEL, NETWORK_ERROR, SLEEP_REQUEST,
     config::SLEEP_ON_ERROR_SECS,
     display::{display_error_text, display_weather},
-    mk_static,
+    tasks::sleep::SleepReason,
     time::secs_until_6am,
 };
-
-use esp_hal::gpio::AnyPin;
-
-use crate::{DATA_CHANNEL, NETWORK_ERROR, SLEEP_REQUEST, tasks::sleep::SleepReason};
 
 pub(crate) struct DisplayResources {
     pub sclk: AnyPin<'static>,
@@ -34,7 +32,6 @@ pub(crate) struct DisplayResources {
 #[embassy_executor::task]
 pub(crate) async fn display_task(resources: DisplayResources) {
     log::info!("Initializing display");
-    // Iniitialize SPI device and control pins for display
     let spi = match Spi::new(
         resources.spi2,
         spi::master::Config::default().with_frequency(Rate::from_mhz(4)),
@@ -66,7 +63,6 @@ pub(crate) async fn display_task(resources: DisplayResources) {
         }
     );
 
-    // Wait for either a network error or weather data concurrently.
     match select(NETWORK_ERROR.wait(), DATA_CHANNEL.receive()).await {
         Either::First(err_msg) => {
             display_error_text(&err_msg, spi_device, busy, dc, rst);
