@@ -3,21 +3,15 @@ use embassy_time::{Duration, Instant, Timer, with_deadline};
 use esp_hal::rng::Rng;
 use esp_radio::wifi::{Config, Interface, WifiController, sta::StationConfig};
 
-use magtag_weatherstation::{
-    config::{NETWORK_IP_TIMEOUT_SECS, NETWORK_LINK_TIMEOUT_SECS, WIFI_PASSWORD, WIFI_SSID},
-    error::{AppError, Result},
-    mk_static,
-};
-
 use core::fmt::Write;
 use heapless::String;
 
-use crate::{NETWORK_ERROR, NETWORK_READY};
+use crate::{
+    NETWORK_ERROR, NETWORK_READY,
+    config::{NETWORK_IP_TIMEOUT_SECS, NETWORK_LINK_TIMEOUT_SECS, WIFI_PASSWORD, WIFI_SSID},
+    error::{AppError, Result},
+};
 
-/// Manage the WiFi connection lifecycle.
-///
-/// Configures and starts the provided `WifiController`, attempts connection,
-/// and retries on failures or after disconnects.
 #[embassy_executor::task]
 pub(crate) async fn wifi_task(mut controller: WifiController<'static>) {
     log::info!("Initializing wifi");
@@ -49,21 +43,13 @@ pub(crate) async fn wifi_task(mut controller: WifiController<'static>) {
     }
 }
 
-/// Run the embassy-net network event runner.
-///
-/// Drives the network stack by running the provided `Runner` until completion.
 #[embassy_executor::task]
 pub(crate) async fn net_runner_task(mut runner: Runner<'static, Interface<'static>>) {
     runner.run().await
 }
 
-/// Validate network readiness (link and IP assignment).
-///
-/// Waits for link up and IPv4 configuration with timeouts, signals
-/// `NETWORK_READY` when an IP is acquired or sends `NETWORK_ERROR` on failure.
 #[embassy_executor::task]
 pub(crate) async fn net_validator_task(stack: embassy_net::Stack<'static>) {
-    // Wait for Link (timeout configured)
     if with_deadline(
         Instant::now() + Duration::from_secs(NETWORK_LINK_TIMEOUT_SECS),
         async {
@@ -79,14 +65,12 @@ pub(crate) async fn net_validator_task(stack: embassy_net::Stack<'static>) {
     .is_err()
     {
         log::error!("Link failed");
-        // Notify display about the network link failure
         let mut msg: String<128> = String::new();
         let _ = write!(msg, "Network link failed");
         NETWORK_ERROR.signal(msg);
         return;
     }
 
-    // Wait for IP (timeout configured)
     if with_deadline(
         Instant::now() + Duration::from_secs(NETWORK_IP_TIMEOUT_SECS),
         async {

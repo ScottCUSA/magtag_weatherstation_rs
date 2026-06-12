@@ -1,4 +1,3 @@
-use alloc::string::ToString;
 use embedded_hal_bus::spi::ExclusiveDevice;
 use esp_hal::{
     delay::Delay,
@@ -81,21 +80,6 @@ pub fn display_error_text(
     rst: Output<'static>,
 ) {
     let _ = display_text(msg, spi_device, busy, dc, rst);
-}
-
-/// Show an `AppError` message on the display.
-pub fn display_app_error(
-    err: &AppError,
-    spi_device: &'static mut ExclusiveDevice<
-        Spi<'static, esp_hal::Blocking>,
-        Output<'static>,
-        Delay,
-    >,
-    busy: Input<'static>,
-    dc: Output<'static>,
-    rst: Output<'static>,
-) {
-    display_error_text(&err.to_string(), spi_device, busy, dc, rst);
 }
 
 fn display_buffer(
