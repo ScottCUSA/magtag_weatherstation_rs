@@ -5,11 +5,15 @@ use embassy_executor::Spawner;
 
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
-use esp_hal::{gpio::Pin, spi::master::AnySpi, timer::timg::TimerGroup};
+use esp_hal::{
+    gpio::Pin, interrupt::software::SoftwareInterruptControl, spi::master::AnySpi,
+    timer::timg::TimerGroup,
+};
 use esp_println::logger::init_logger_from_env;
 
 use embassy_sync::channel::Channel;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
+use magtag_weatherstation::config::SLEEP_ON_ERROR_SECS;
 use magtag_weatherstation::weather::model::OpenMeteoResponse;
 
 use crate::tasks::sleep::SleepReason;
@@ -45,30 +49,30 @@ async fn main(spawner: Spawner) -> ! {
 
     // Initialize and start RTOS timer
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_rtos::start(timg0.timer0);
+    let sw_interrupt = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    esp_rtos::start(timg0.timer0, sw_interrupt.software_interrupt0);
 
     // Spawn the deep sleep task
     // waits for SLEEP_REQUEST signal
-    spawner
-        .spawn(tasks::sleep::deep_sleep_task(peripherals.LPWR))
-        .expect("Failed to spawn deep sleep task");
+    spawner.spawn(
+        tasks::sleep::deep_sleep_task(peripherals.LPWR).expect("Failed to spawn deep sleep task"),
+    );
 
     // Spawn the display task
     // waits for NETWORK_ERROR signal or DATA_CHANNEL message
-    spawner
-        .spawn(tasks::display::display_task(
-            tasks::display::DisplayResources {
-                sclk: peripherals.GPIO36.degrade(),
-                mosi: peripherals.GPIO35.degrade(),
-                miso: peripherals.GPIO37.degrade(),
-                spi2: AnySpi::from(peripherals.SPI2),
-                busy: peripherals.GPIO5.degrade(),
-                rst: peripherals.GPIO6.degrade(),
-                dc: peripherals.GPIO7.degrade(),
-                cs: peripherals.GPIO8.degrade(),
-            },
-        ))
-        .expect("Failed to spawn display_task");
+    spawner.spawn(
+        tasks::display::display_task(tasks::display::DisplayResources {
+            sclk: peripherals.GPIO36.degrade(),
+            mosi: peripherals.GPIO35.degrade(),
+            miso: peripherals.GPIO37.degrade(),
+            spi2: AnySpi::from(peripherals.SPI2),
+            busy: peripherals.GPIO5.degrade(),
+            rst: peripherals.GPIO6.degrade(),
+            dc: peripherals.GPIO7.degrade(),
+            cs: peripherals.GPIO8.degrade(),
+        })
+        .expect("Failed to spawn display_task"),
+    );
 
     // initialize wifi
     // sends NETWORK_ERROR signal if initializing wifi fails
@@ -79,33 +83,31 @@ async fn main(spawner: Spawner) -> ! {
             Ok(pair) => pair,
             Err(e) => {
                 log::error!("Failed to initialize radio: {:?}", e);
+                SLEEP_REQUEST.signal((SLEEP_ON_ERROR_SECS, SleepReason::NetworkError));
                 loop {
                     // end execution
                     Timer::after(Duration::from_secs(60)).await;
                 }
             }
         };
-    spawner
-        .spawn(tasks::network::wifi_task(controller))
-        .expect("Failed to spawn wifi_task");
+    spawner.spawn(tasks::network::wifi_task(controller).expect("Failed to spawn wifi_task"));
 
     // Initialize network stack
     // sends NETWORK_READY signal on link-up and IP acquired
     // sends NETWORK_ERROR signal if link-up time out or acquire IP time out
     let (stack, runner) = tasks::network::init_network_stack(wifi_interface);
     spawner
-        .spawn(tasks::network::net_runner_task(runner))
-        .expect("Failed to spawn net_runner_task");
-    spawner
-        .spawn(tasks::network::net_validator_task(stack))
-        .expect("Failed to spawn net_validator_task");
+        .spawn(tasks::network::net_runner_task(runner).expect("Failed to spawn net_runner_task"));
+    spawner.spawn(
+        tasks::network::net_validator_task(stack).expect("Failed to spawn net_validator_task"),
+    );
 
     // Spawn the weather fetcher
     // waits for NETWORK_READY signal
     // sends DATA_CHANNEL message on success, NETWORK_ERROR signal on failure
-    spawner
-        .spawn(tasks::weather::weather_fetcher_task(stack))
-        .expect("Failed to spawn weather_fetcher_task");
+    spawner.spawn(
+        tasks::weather::weather_fetcher_task(stack).expect("Failed to spawn weather_fetcher_task"),
+    );
 
     // yield to the executor
     loop {

@@ -26,14 +26,7 @@ pub static CHARACTER_STYLE: Lazy<MonoTextStyle<Gray2>> = Lazy::new(|| {
 /// Draw `text` inside a rectangle at `(x,y)` with width `w` and height `h` on `buffer` using the module text style.
 ///
 /// Returns `Ok(())` on success or `AppError::GraphicsError` on failure.
-pub(crate) fn draw_text_xy_wh<D>(
-    text: &str,
-    x: i32,
-    y: i32,
-    w: u32,
-    h: u32,
-    buffer: &mut D,
-) -> Result<()>
+pub fn draw_text_xy_wh<D>(text: &str, x: i32, y: i32, w: u32, h: u32, buffer: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray2> + OriginDimensions,
     <D as DrawTarget>::Error: core::fmt::Debug,
