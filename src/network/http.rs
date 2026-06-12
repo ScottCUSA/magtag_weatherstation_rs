@@ -47,6 +47,7 @@ pub(crate) fn url_encode_component(component: &str) -> Result<String> {
     Ok(buf)
 }
 
+#[allow(dead_code)]
 pub enum Method {
     Get,
     Post,
