@@ -13,12 +13,12 @@ path = "./src/bin/main.rs"
 test = false
 
 [features]
-# "display-ssd1680" targets the 2025 edition MagTag with the SSD1680 controller.
-# "display-il0373" targets the original MagTag with the IL0373 controller.
+# "magtag-2025" targets the 2025 edition MagTag with the SSD1680 controller.
+# "magtag-classic" targets the original MagTag with the IL0373 controller.
 # Exactly one must be enabled; enabling both or neither is a compile error.
-default = ["display-ssd1680"]
-display-ssd1680 = []
-display-il0373 = []
+default = ["magtag-2025"]
+magtag-2025 = []
+magtag-classic = []
 
 [dependencies]
 # eps32 dependencies

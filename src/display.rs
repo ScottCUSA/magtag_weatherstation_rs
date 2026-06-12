@@ -6,18 +6,18 @@ use esp_hal::{
     spi::master::Spi,
 };
 
-#[cfg(all(feature = "display-ssd1680", feature = "display-il0373"))]
+#[cfg(all(feature = "magtag-2025", feature = "magtag-classic"))]
 compile_error!(
-    "Features \"display-ssd1680\" and \"display-il0373\" are mutually exclusive. Enable only one."
+    "Features \"magtag-2025\" and \"magtag-classic\" are mutually exclusive. Enable only one."
 );
 
-#[cfg(not(any(feature = "display-ssd1680", feature = "display-il0373")))]
-compile_error!("One of \"display-ssd1680\" or \"display-il0373\" must be enabled.");
+#[cfg(not(any(feature = "magtag-2025", feature = "magtag-classic")))]
+compile_error!("One of \"magtag-2025\" or \"magtag-classic\" must be enabled.");
 
-#[cfg(feature = "display-ssd1680")]
+#[cfg(feature = "magtag-2025")]
 use epd_datafuri::displays::adafruit_thinkink_290_mfgn::{Display2in9Gray2, ThinkInk2in9Gray2};
 
-#[cfg(feature = "display-il0373")]
+#[cfg(feature = "magtag-classic")]
 use epd_datafuri::displays::adafruit_thinkink_290_t5::{Display2in9Gray2, ThinkInk2in9Gray2};
 
 use epd_datafuri::prelude::*;

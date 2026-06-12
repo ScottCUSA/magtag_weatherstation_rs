@@ -22,7 +22,7 @@ This project was inspired by Adafruit's [MagTag Weather Example](https://learn.a
 
 - [Adafruit MagTag](https://www.adafruit.com/product/4800) (ESP32-S2 based e-paper display board), either:
   - **2025 Edition** with SSD1680 controller (default)
-  - **Original edition** with IL0373 controller (use `--features display-il0373`)
+  - **Original edition** with IL0373 controller (use `--features magtag-classic`)
 - USB cable for programming and power
 - Optional: USB-to-serial adapter for debugging (see Serial Logging section)
 
@@ -58,14 +58,14 @@ WiFi credentials are read from environment variables at compile time:
 
 ## Building
 
-Select your target hardware using Cargo feature flags. The default is `display-ssd1680` (2025 edition MagTag). Exactly one display feature must be enabled; enabling both or neither is a compile error. 
+Select your target hardware using Cargo feature flags. The default is `magtag-2025` (2025 edition MagTag). Exactly one display feature must be enabled; enabling both or neither is a compile error. 
 
 ```bash
 # 2025 edition MagTag (SSD1680, default)
 cargo build --release
 
 # Original MagTag (IL0373)
-cargo build --release --no-default-features --features display-il0373
+cargo build --release --no-default-features --features magtag-classic
 ```
 
 ## Flashing
@@ -77,7 +77,7 @@ The project is configured to use `espflash` as the default runner:
 cargo run --release
 
 # Build and flash for original MagTag (IL0373)
-cargo run --release --no-default-features --features display-il0373
+cargo run --release --no-default-features --features magtag-classic
 
 # Or flash a pre-built binary
 espflash flash --monitor --chip esp32s2 target/xtensa-esp32s2-none-elf/release/magtag_weatherstation
@@ -132,7 +132,7 @@ Key dependencies include:
 - Look for error messages on the display itself
 
 ### Display Issues
-- Verify you are using the correct feature flag for your hardware revision (`display-ssd1680` for 2025 edition, `display-il0373` for the original)
+- Verify you are using the correct feature flag for your hardware revision (`magtag-2025` for 2025 edition, `magtag-classic` for the original)
 
 ## Contributing
 
