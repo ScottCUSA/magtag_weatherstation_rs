@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
-name = "dev-scripts"
+name = "magtag-weatherstation-devtools"
 version = "0.1.0"
 source = { virtual = "." }
 

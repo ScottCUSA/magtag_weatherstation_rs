@@ -1,5 +1,5 @@
 [project]
-name = "dev-scripts"
+name = "magtag-weatherstation-devtools"
 version = "0.1.0"
 description = "Dev script dependencies for magtag-weatherstation-rs"
 readme = "README.md"
