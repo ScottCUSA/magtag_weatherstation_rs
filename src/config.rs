@@ -1,6 +1,6 @@
 // Network timeouts
-pub const NETWORK_LINK_TIMEOUT_SECS: u64 = 10;
-pub const NETWORK_IP_TIMEOUT_SECS: u64 = 20;
+pub const NETWORK_LINK_TIMEOUT_SECS: u64 = 30;
+pub const NETWORK_IP_TIMEOUT_SECS: u64 = 45;
 
 // Wifi credentials
 pub const WIFI_SSID: &str = env!("WIFI_SSID");
