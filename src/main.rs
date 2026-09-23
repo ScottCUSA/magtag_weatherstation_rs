@@ -34,13 +34,11 @@ use esp_hal::{
 };
 use esp_println::logger::init_logger_from_env;
 
-use embassy_sync::{
-    blocking_mutex::raw::CriticalSectionRawMutex,
-    channel::Channel,
-    signal::Signal,
-};
 use crate::config::SLEEP_ON_ERROR_SECS;
 use crate::weather::model::OpenMeteoResponse;
+use embassy_sync::{
+    blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel, signal::Signal,
+};
 
 use crate::tasks::sleep::SleepReason;
 
@@ -79,7 +77,7 @@ async fn main(spawner: Spawner) -> ! {
     );
 
     spawner.spawn(
-        tasks::display::display_task(tasks::display::DisplayResources {
+        tasks::display::display_task(tasks::display::DisplayPeripherals {
             sclk: peripherals.GPIO36.degrade(),
             mosi: peripherals.GPIO35.degrade(),
             miso: peripherals.GPIO37.degrade(),

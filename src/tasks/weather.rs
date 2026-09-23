@@ -1,13 +1,12 @@
 use embassy_net::Stack;
 use embassy_time::{Duration, Timer};
 
-use core::fmt::Write;
-use heapless::String;
 use crate::{
-    DATA_CHANNEL, NETWORK_ERROR, NETWORK_READY,
-    config::SLEEP_ON_ERROR_SECS,
+    DATA_CHANNEL, NETWORK_ERROR, NETWORK_READY, config::SLEEP_ON_ERROR_SECS,
     weather::api::fetch_weather,
 };
+use core::fmt::Write;
+use heapless::String;
 
 #[embassy_executor::task]
 pub(crate) async fn weather_fetcher_task(stack: Stack<'static>) {

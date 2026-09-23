@@ -18,7 +18,7 @@ use crate::{
     time::secs_until_6am,
 };
 
-pub(crate) struct DisplayResources {
+pub(crate) struct DisplayPeripherals {
     pub sclk: AnyPin<'static>,
     pub mosi: AnyPin<'static>,
     pub miso: AnyPin<'static>,
@@ -30,7 +30,7 @@ pub(crate) struct DisplayResources {
 }
 
 #[embassy_executor::task]
-pub(crate) async fn display_task(resources: DisplayResources) {
+pub(crate) async fn display_task(resources: DisplayPeripherals) {
     log::info!("Initializing display");
     let spi = match Spi::new(
         resources.spi2,
