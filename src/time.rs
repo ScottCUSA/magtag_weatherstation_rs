@@ -1,10 +1,25 @@
 use time::{Month, OffsetDateTime, Weekday};
 
+/// How the month name is written by [`format_date_unix`].
+#[derive(Clone, Copy)]
+pub enum MonthFormat {
+    /// Full month name, e.g. `"September"`.
+    Full,
+    /// Three-letter month name, e.g. `"Sep"`.
+    Short,
+}
+
 /// Formats a Unix timestamp as a human-readable date, adjusted for a UTC offset.
 ///
 /// `utc_offset_seconds` is added to `ts` before formatting. The output looks like
-/// `"Monday January 1st, 2020"`. Returns `None` if the timestamp is out of range.
-pub fn format_date_unix(ts: i64, utc_offset_seconds: i32) -> Option<heapless::String<64>> {
+/// `"Monday January 1st, 2020"`, or `"Monday Jan 1st, 2020"` with
+/// [`MonthFormat::Short`]. Returns `None` if the timestamp is out of range or the
+/// date does not fit in `N` bytes.
+pub fn format_date_unix<const N: usize>(
+    ts: i64,
+    utc_offset_seconds: i32,
+    month_format: MonthFormat,
+) -> Option<heapless::String<N>> {
     let local_ts = ts + utc_offset_seconds as i64;
     let dt = OffsetDateTime::from_unix_timestamp(local_ts).ok()?;
 
@@ -32,11 +47,16 @@ pub fn format_date_unix(ts: i64, utc_offset_seconds: i32) -> Option<heapless::St
         Month::November => "November",
         Month::December => "December",
     };
+    let month_name = match month_format {
+        MonthFormat::Full => month_name,
+        // All month names are ASCII, so slicing to 3 bytes is safe.
+        MonthFormat::Short => &month_name[..3],
+    };
 
     let day = dt.day();
     let year = dt.year();
-    let mut out = heapless::String::<64>::new();
-    let _ = core::fmt::write(
+    let mut out = heapless::String::<N>::new();
+    core::fmt::write(
         &mut out,
         format_args!(
             "{} {} {}{}, {}",
@@ -46,7 +66,8 @@ pub fn format_date_unix(ts: i64, utc_offset_seconds: i32) -> Option<heapless::St
             ordinal(day),
             year
         ),
-    );
+    )
+    .ok()?;
     Some(out)
 }
 

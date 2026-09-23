@@ -12,9 +12,13 @@ use once_cell::sync::Lazy;
 use crate::{
     error::Result,
     graphics::{draw_binary_color_image, draw_image, draw_text, draw_text_xy_wh},
-    time::{format_date_unix, short_dow_unix, unix_hh_mm},
+    time::{MonthFormat, format_date_unix, short_dow_unix, unix_hh_mm},
     weather::model::OpenMeteoResponse,
 };
+
+// Max characters that fit in the today date area (6px-wide font) before the
+// month name is abbreviated.
+const TODAY_DATE_MAX_CHARS: usize = 27;
 
 // load img data at compile time into static storage
 static WEATHER_BG: Lazy<ImageRaw<'static, BinaryColor>> = Lazy::new(|| {
@@ -48,11 +52,17 @@ where
 {
     draw_background_image(buffer)?;
     draw_today_weather_icon(*weather_data.daily.weather_code.first().unwrap(), buffer)?;
-    let today_date = format_date_unix(
-        *weather_data.daily.time.first().unwrap(),
-        weather_data.utc_offset_seconds,
-    )
-    .unwrap();
+    let today_ts = *weather_data.daily.time.first().unwrap();
+    let mut today_date: String<32> =
+        format_date_unix(today_ts, weather_data.utc_offset_seconds, MonthFormat::Full).unwrap();
+    if today_date.len() > TODAY_DATE_MAX_CHARS {
+        today_date = format_date_unix(
+            today_ts,
+            weather_data.utc_offset_seconds,
+            MonthFormat::Short,
+        )
+        .unwrap();
+    }
     draw_today_date(&today_date, buffer)?;
     draw_today_lat_long(weather_data.latitude, weather_data.longitude, buffer)?;
     draw_today_high_low(
